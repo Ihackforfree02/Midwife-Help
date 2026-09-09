@@ -31,7 +31,8 @@
       <h1>Welcome back</h1>
       <p>Log in with your organisation account to see today's schedule.</p>
 
-      <div class="login-error" id="loginError">That email and password don't match our records. Try again.</div>
+      <div class="login-error" id="verifiedNotice" style="background:var(--color-ok-bg); color:var(--color-primary-dark);">Your email is verified — you can log in now.</div>
+      <div class="login-error" id="loginError">That email and password don't match our records, or the account isn't verified yet.</div>
 
       <form id="loginForm" novalidate>
         <div class="field">
@@ -49,14 +50,21 @@
         <button type="submit" class="btn btn-primary btn-block">Log in</button>
       </form>
 
+      <p style="margin-top:1.2rem; font-size:0.9rem;">New here? <a href="signup.html">Create an account</a>.</p>
+
       <div class="demo-hint">
-        Demo build — no real accounts yet. Log in with <code>demo@midwifeconnect.org</code> / <code>demo1234</code> to preview the dashboard.
+        Demo build. Try the sample account: <code>demo@midwifeconnect.org</code> / <code>demo1234</code>.
+      </div>
+
+      <div class="demo-hint" id="adminSetupHint" style="display:none; margin-top:0.7rem;">
+        No admin account exists in this browser yet. <a href="admin-setup.html">Set one up</a> — it stays local and is never pushed to GitHub.
       </div>
     </div>
   </div>
 
 </div>
 
+<script src="js/auth.js"></script>
 <script src="js/login.js"></script>
 </body>
 </html>
