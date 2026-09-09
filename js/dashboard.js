@@ -1,4 +1,38 @@
 // ---------------------------------------------------------------------
+// Require login. If nobody's logged in on this browser, bounce back
+// to the login page rather than showing an empty/broken dashboard.
+// ---------------------------------------------------------------------
+const currentUser = getCurrentUser();
+if (!currentUser) {
+  window.location.href = "index.html";
+}
+
+// ---------------------------------------------------------------------
+// Personalise the sidebar + greeting, and show the Admin panel link
+// only to admins.
+// ---------------------------------------------------------------------
+function renderCurrentUser() {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  document.getElementById("sidebarName").textContent = user.name;
+  document.getElementById("sidebarRole").textContent = user.isAdmin ? "Administrator" : "Midwife";
+  document.getElementById("greetingHeading").textContent = `Good morning, ${user.name.split(" ")[0]}`;
+
+  const avatarSrc = user.avatar || "images/avatar-placeholder.svg";
+  document.getElementById("sidebarAvatar").src = avatarSrc;
+  document.getElementById("profileAvatarPreview").src = avatarSrc;
+
+  document.getElementById("fullName").value = user.name;
+  document.getElementById("profileEmail").value = user.email;
+  document.getElementById("profilePhone").value = user.phone || "";
+
+  document.getElementById("adminNavItem").style.display = user.isAdmin ? "block" : "none";
+}
+
+renderCurrentUser();
+
+// ---------------------------------------------------------------------
 // Sidebar navigation: shows/hides views. No page reloads, no routing
 // library needed — just plain DOM show/hide.
 // ---------------------------------------------------------------------
@@ -14,16 +48,135 @@ navLinks.forEach((link) => {
 
     views.forEach((v) => v.classList.remove("active"));
     document.getElementById("view-" + target).classList.add("active");
+
+    if (target === "admin") renderAdminTable();
   });
 });
 
 // ---------------------------------------------------------------------
-// Logout — just sends the user back to the login page. There's no real
-// session to clear yet since login.js doesn't set one.
+// Logout — clears the current session and returns to the login page.
 // ---------------------------------------------------------------------
 document.getElementById("logoutBtn").addEventListener("click", () => {
+  logout();
   window.location.href = "index.html";
 });
+
+// ---------------------------------------------------------------------
+// Profile editing: name, email, phone, and profile picture.
+// Saved back into this browser's account storage via auth.js.
+// ---------------------------------------------------------------------
+const avatarInput = document.getElementById("avatarInput");
+const profileAvatarPreview = document.getElementById("profileAvatarPreview");
+let pendingAvatarDataUrl = null;
+
+document.getElementById("changePhotoBtn").addEventListener("click", () => {
+  avatarInput.click();
+});
+
+avatarInput.addEventListener("change", () => {
+  const file = avatarInput.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    pendingAvatarDataUrl = reader.result;
+    profileAvatarPreview.src = pendingAvatarDataUrl;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById("saveProfileBtn").addEventListener("click", () => {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const updates = {
+    name: document.getElementById("fullName").value.trim() || user.name,
+    email: document.getElementById("profileEmail").value.trim().toLowerCase() || user.email,
+    phone: document.getElementById("profilePhone").value.trim(),
+  };
+  if (pendingAvatarDataUrl) updates.avatar = pendingAvatarDataUrl;
+
+  updateAccount(user.email, updates);
+
+  // Email may have changed, so re-point "who's logged in" at the new address.
+  setCurrentUser(updates.email);
+
+  renderCurrentUser();
+
+  const saved = document.getElementById("profileSaved");
+  saved.classList.add("visible");
+  setTimeout(() => saved.classList.remove("visible"), 2500);
+});
+
+// ---------------------------------------------------------------------
+// Admin panel: list every account in this browser, promote/revoke
+// admin, and manually verify someone who's stuck.
+// ---------------------------------------------------------------------
+function renderAdminTable() {
+  const tbody = document.getElementById("adminAccountsTable");
+  const accounts = getAccounts();
+  const me = getCurrentUser();
+
+  tbody.innerHTML = "";
+
+  accounts.forEach((account) => {
+    const row = document.createElement("tr");
+
+    const verifiedBadge = account.verified
+      ? '<span class="badge badge-done">Verified</span>'
+      : '<span class="badge badge-current">Pending</span>';
+
+    const roleBadge = account.isAdmin
+      ? '<span class="badge badge-done">Admin</span>'
+      : '<span class="badge badge-upcoming">Staff</span>';
+
+    const isSelf = me && me.email === account.email;
+
+    row.innerHTML = `
+      <td>${escapeHtml(account.name)}</td>
+      <td>${escapeHtml(account.email)}</td>
+      <td>${verifiedBadge}</td>
+      <td>${roleBadge}</td>
+      <td style="text-align:right; white-space:nowrap;"></td>
+    `;
+
+    const actionsCell = row.querySelector("td:last-child");
+
+    if (!account.verified) {
+      const verifyBtn = document.createElement("button");
+      verifyBtn.className = "btn btn-ghost";
+      verifyBtn.textContent = "Verify manually";
+      verifyBtn.style.marginRight = "0.4rem";
+      verifyBtn.addEventListener("click", () => {
+        updateAccount(account.email, { verified: true, verificationCode: null });
+        renderAdminTable();
+      });
+      actionsCell.appendChild(verifyBtn);
+    }
+
+    if (!isSelf) {
+      const roleBtn = document.createElement("button");
+      roleBtn.className = "btn btn-ghost";
+      roleBtn.textContent = account.isAdmin ? "Revoke admin" : "Make admin";
+      roleBtn.addEventListener("click", () => {
+        updateAccount(account.email, {
+          isAdmin: !account.isAdmin,
+          verified: account.isAdmin ? account.verified : true,
+        });
+        renderAdminTable();
+      });
+      actionsCell.appendChild(roleBtn);
+    }
+
+    tbody.appendChild(row);
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 // ---------------------------------------------------------------------
 // DEMO countdown timer.
