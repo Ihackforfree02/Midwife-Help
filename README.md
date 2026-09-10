@@ -106,6 +106,17 @@ If this ever became a real deployed tool, both of these would need a proper
 backend (a small server or a service like Firebase) so messages — and real
 emails — could actually move between different people's devices.
 
+## Gmail panel
+
+There's a "Mail" button at the bottom of the sidebar that slides out a side
+panel styled to match the rest of the site. It tries to load Gmail in an
+iframe, but **this will not actually show your inbox** — Google deliberately
+blocks Gmail from being embedded in other sites for security reasons, and
+that's not something a front-end site can override. The panel makes this
+clear and gives a working "Open Gmail in a new tab" button instead. The
+iframe is left in the code so it's obvious what was attempted and why it
+doesn't work, rather than silently dropping the idea.
+
 ## Placeholder images
 
 Everything in `/images` is an SVG placeholder so the site looks complete
