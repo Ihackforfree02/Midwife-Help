@@ -52,6 +52,10 @@
     </ul>
 
     <div class="sidebar-footer">
+      <button class="nav-link mail-toggle-btn" id="mailToggleBtn" style="margin-bottom:0.8rem;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
+        Mail
+      </button>
       <div class="sidebar-user">
         <img src="images/avatar-placeholder.svg" alt="" id="sidebarAvatar">
         <div>
@@ -227,10 +231,32 @@
           <h1>Patients</h1>
         </div>
       </div>
-      <div class="card empty-state">
-        <h3>Patient records aren't connected yet</h3>
-        <p>This section will list patient profiles once the organisation's records system is linked. For now, add your own placeholder patients here as you build out the project.</p>
-        <button class="btn btn-primary">Add a patient</button>
+
+      <div class="card" style="margin-bottom:1.4rem; display:none;" id="addPatientForm">
+        <h3 class="section-title">Add a patient</h3>
+        <div class="form-row">
+          <label for="newPatientName">Name</label>
+          <input type="text" id="newPatientName">
+        </div>
+        <div class="form-row">
+          <label for="newPatientNote">Note (optional)</label>
+          <input type="text" id="newPatientNote" placeholder="e.g. due date, ward">
+        </div>
+        <button class="btn btn-primary" id="savePatientBtn">Save patient</button>
+        <button class="btn btn-ghost" id="cancelPatientBtn">Cancel</button>
+      </div>
+
+      <div class="card">
+        <div id="patientsEmptyState" class="empty-state">
+          <h3>No patients added yet</h3>
+          <p>Add a placeholder patient here as you build out the project — a real records system would connect here later.</p>
+        </div>
+        <div id="patientsListWrap" style="display:none;">
+          <ul class="schedule-list" id="patientsList"></ul>
+        </div>
+        <div style="text-align:center; margin-top:1.2rem;">
+          <button class="btn btn-primary" id="addPatientBtn">Add a patient</button>
+        </div>
       </div>
     </section>
 
@@ -313,6 +339,22 @@
 
   </main>
 </div>
+
+<!-- ===================== Gmail side panel ===================== -->
+<div class="mail-drawer-backdrop" id="mailDrawerBackdrop"></div>
+<aside class="mail-drawer" id="mailDrawer">
+  <div class="mail-drawer-header">
+    <strong>Gmail</strong>
+    <button class="btn btn-ghost" id="mailDrawerClose">Close</button>
+  </div>
+  <div class="mail-drawer-body">
+    <iframe src="https://mail.google.com/mail/" title="Gmail" loading="lazy"></iframe>
+    <div class="mail-drawer-fallback">
+      <p><strong>Gmail can't be shown inside this panel.</strong> Google blocks Gmail from being embedded on other sites for security reasons — that's controlled on their end, not something this site can change.</p>
+      <a class="btn btn-primary btn-block" href="https://mail.google.com/mail/" target="_blank" rel="noopener">Open Gmail in a new tab</a>
+    </div>
+  </div>
+</aside>
 
 <script src="js/auth.js"></script>
 <script src="js/dashboard.js"></script>
