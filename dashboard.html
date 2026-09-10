@@ -193,6 +193,33 @@
       </div>
 
       <div class="card" style="margin-bottom:1.4rem;">
+        <h3 class="section-title">My reminders</h3>
+        <p class="section-sub">Set your own reminders, or link one to a patient from the Patients page.</p>
+
+        <div class="card" style="margin-bottom:1.2rem; display:none; box-shadow:none;" id="addReminderForm">
+          <div class="form-row">
+            <label for="newReminderTitle">Title</label>
+            <input type="text" id="newReminderTitle" placeholder="e.g. Follow up with Patient D">
+          </div>
+          <div class="form-row">
+            <label for="newReminderDate">Date &amp; time (optional)</label>
+            <input type="datetime-local" id="newReminderDate">
+          </div>
+          <div class="form-row">
+            <label for="newReminderNote">Note (optional)</label>
+            <input type="text" id="newReminderNote">
+          </div>
+          <button class="btn btn-primary" id="saveReminderBtn">Save reminder</button>
+          <button class="btn btn-ghost" id="cancelReminderBtn">Cancel</button>
+        </div>
+
+        <div id="remindersEmptyState" class="alert-meta" style="padding:0.6rem 0;">No reminders yet.</div>
+        <div id="remindersList"></div>
+
+        <button class="btn btn-ghost" id="addReminderBtn" style="margin-top:0.6rem;">+ Add reminder</button>
+      </div>
+
+      <div class="card" style="margin-bottom:1.4rem;">
         <h3 class="section-title">Patient messages</h3>
         <p class="section-sub">Sent from the patient contact page. Saved on this device only — see the README for what a multi-device version would need.</p>
         <div id="patientMessagesList"><!-- filled in by dashboard.js --></div>
@@ -241,6 +268,14 @@
         <div class="form-row">
           <label for="newPatientNote">Note (optional)</label>
           <input type="text" id="newPatientNote" placeholder="e.g. due date, ward">
+        </div>
+        <div class="form-row">
+          <label for="newPatientReminderDate">Set a reminder (optional)</label>
+          <input type="datetime-local" id="newPatientReminderDate">
+        </div>
+        <div class="form-row">
+          <label for="newPatientReminderNote">Reminder note</label>
+          <input type="text" id="newPatientReminderNote" placeholder="e.g. call to confirm appointment">
         </div>
         <button class="btn btn-primary" id="savePatientBtn">Save patient</button>
         <button class="btn btn-ghost" id="cancelPatientBtn">Cancel</button>
@@ -296,6 +331,12 @@
           <input type="tel" id="profilePhone" placeholder="Optional">
         </div>
         <button class="btn btn-primary" id="saveProfileBtn">Save changes</button>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.4rem;">
+        <h3 class="section-title">Accounts on this device</h3>
+        <p class="section-sub">Switch between accounts you've created in this browser without re-entering a password.</p>
+        <div id="accountSwitcherList"><!-- filled in by dashboard.js --></div>
       </div>
 
       <div class="card">
