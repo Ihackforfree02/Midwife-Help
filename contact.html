@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Midwife Connect — Message your midwife</title>
+<link rel="stylesheet" href="css/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="login-page">
+
+  <div class="login-brand">
+    <img class="hero" src="images/hero-placeholder.svg" alt="">
+    <div class="login-brand-content">
+      <div class="login-brand-mark">
+        <img src="images/logo.svg" alt="" width="34" height="34">
+        Midwife Connect
+      </div>
+    </div>
+    <div class="login-brand-quote">
+      <h2>Message your midwife.</h2>
+      <p>Send a note or a time-sensitive alert — it'll appear in their dashboard.</p>
+    </div>
+  </div>
+
+  <div class="login-form-panel">
+    <div class="login-form-wrap">
+
+      <div id="sentNotice" style="display:none;">
+        <h1>Message sent</h1>
+        <p>Your midwife will see this in their dashboard.</p>
+        <a class="btn btn-primary btn-block" href="contact.html">Send another message</a>
+      </div>
+
+      <form id="contactForm" novalidate>
+        <h1>Get in touch</h1>
+        <p>No account needed — just fill in your details below.</p>
+
+        <div class="login-error" id="contactError">Please enter your name and a message.</div>
+
+        <div class="field">
+          <label for="patientName">Your name</label>
+          <input type="text" id="patientName" required>
+        </div>
+        <div class="field">
+          <label for="contactInfo">Email or phone (optional)</label>
+          <input type="text" id="contactInfo" placeholder="So they can get back to you">
+        </div>
+        <div class="field">
+          <label for="messageBody">Message</label>
+          <textarea id="messageBody" rows="5" required style="width:100%; padding:0.7em 0.85em; border:1px solid var(--color-border); border-radius:var(--radius-s); font-family:inherit; resize:vertical;"></textarea>
+        </div>
+        <div class="field-row" style="margin-bottom:1.2rem;">
+          <label><input type="checkbox" id="urgentCheck"> This is time-sensitive / urgent</label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Send message</button>
+      </form>
+
+      <div class="demo-hint">
+        Demo build — this message is saved on this device only. If your midwife checks their dashboard on a different device, they won't see it yet (a real version needs a proper backend).
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/auth.js"></script>
+<script>
+  const form = document.getElementById("contactForm");
+  const errorBox = document.getElementById("contactError");
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const patientName = document.getElementById("patientName").value.trim();
+    const contact = document.getElementById("contactInfo").value.trim();
+    const body = document.getElementById("messageBody").value.trim();
+    const urgent = document.getElementById("urgentCheck").checked;
+
+    if (!patientName || !body) {
+      errorBox.classList.add("visible");
+      return;
+    }
+
+    addMessage({ patientName, contact, urgent, body });
+
+    document.getElementById("sentNotice").style.display = "block";
+    form.style.display = "none";
+  });
+</script>
+</body>
+</html>
