@@ -50,7 +50,8 @@ navLinks.forEach((link) => {
     document.getElementById("view-" + target).classList.add("active");
 
     if (target === "admin") renderAdminTable();
-    if (target === "reminders") renderPatientMessages();
+    if (target === "reminders") { renderPatientMessages(); renderReminders(); }
+    if (target === "settings") renderAccountSwitcher();
   });
 });
 
@@ -260,11 +261,15 @@ cancelPatientBtn.addEventListener("click", () => {
   addPatientBtn.style.display = "inline-flex";
   document.getElementById("newPatientName").value = "";
   document.getElementById("newPatientNote").value = "";
+  document.getElementById("newPatientReminderDate").value = "";
+  document.getElementById("newPatientReminderNote").value = "";
 });
 
 savePatientBtn.addEventListener("click", () => {
   const name = document.getElementById("newPatientName").value.trim();
   const note = document.getElementById("newPatientNote").value.trim();
+  const reminderDate = document.getElementById("newPatientReminderDate").value;
+  const reminderNote = document.getElementById("newPatientReminderNote").value.trim();
 
   if (!name) {
     document.getElementById("newPatientName").focus();
@@ -273,12 +278,24 @@ savePatientBtn.addEventListener("click", () => {
 
   addPatient({ name, note });
 
+  if (reminderDate || reminderNote) {
+    addReminder({
+      title: `Reminder for ${name}`,
+      note: reminderNote,
+      datetime: reminderDate,
+      patientName: name,
+    });
+  }
+
   document.getElementById("newPatientName").value = "";
   document.getElementById("newPatientNote").value = "";
+  document.getElementById("newPatientReminderDate").value = "";
+  document.getElementById("newPatientReminderNote").value = "";
   addPatientForm.style.display = "none";
   addPatientBtn.style.display = "inline-flex";
 
   renderPatients();
+  renderReminders();
 });
 
 function renderPatients() {
@@ -319,6 +336,168 @@ function renderPatients() {
 }
 
 renderPatients();
+
+// ---------------------------------------------------------------------
+// Reminders: standalone, or linked to a patient (set from the Add
+// Patient form).
+// ---------------------------------------------------------------------
+const addReminderBtn = document.getElementById("addReminderBtn");
+const addReminderForm = document.getElementById("addReminderForm");
+const cancelReminderBtn = document.getElementById("cancelReminderBtn");
+const saveReminderBtn = document.getElementById("saveReminderBtn");
+
+addReminderBtn.addEventListener("click", () => {
+  addReminderForm.style.display = "block";
+  addReminderBtn.style.display = "none";
+  document.getElementById("newReminderTitle").focus();
+});
+
+cancelReminderBtn.addEventListener("click", () => {
+  hideReminderForm();
+});
+
+function hideReminderForm() {
+  addReminderForm.style.display = "none";
+  addReminderBtn.style.display = "inline-flex";
+  document.getElementById("newReminderTitle").value = "";
+  document.getElementById("newReminderDate").value = "";
+  document.getElementById("newReminderNote").value = "";
+}
+
+saveReminderBtn.addEventListener("click", () => {
+  const title = document.getElementById("newReminderTitle").value.trim();
+  const datetime = document.getElementById("newReminderDate").value;
+  const note = document.getElementById("newReminderNote").value.trim();
+
+  if (!title) {
+    document.getElementById("newReminderTitle").focus();
+    return;
+  }
+
+  addReminder({ title, note, datetime });
+  hideReminderForm();
+  renderReminders();
+});
+
+function formatReminderDate(datetime) {
+  if (!datetime) return "";
+  const d = new Date(datetime);
+  return d.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
+
+function renderReminders() {
+  const reminders = getReminders().slice().sort((a, b) => {
+    // Ones with a date come first, soonest first; undated ones after.
+    if (a.datetime && b.datetime) return new Date(a.datetime) - new Date(b.datetime);
+    if (a.datetime) return -1;
+    if (b.datetime) return 1;
+    return new Date(a.createdAt) - new Date(b.createdAt);
+  });
+
+  const list = document.getElementById("remindersList");
+  const emptyState = document.getElementById("remindersEmptyState");
+
+  if (reminders.length === 0) {
+    emptyState.style.display = "block";
+    list.innerHTML = "";
+    return;
+  }
+
+  emptyState.style.display = "none";
+  list.innerHTML = "";
+
+  const now = new Date();
+
+  reminders.forEach((reminder) => {
+    const isOverdue = reminder.datetime && !reminder.done && new Date(reminder.datetime) < now;
+
+    const item = document.createElement("div");
+    item.className = "alert-item " + (reminder.done ? "" : isOverdue ? "danger" : "warn");
+    if (reminder.done) item.style.opacity = "0.6";
+
+    const dateLine = reminder.datetime ? formatReminderDate(reminder.datetime) : "No date set";
+    const patientLine = reminder.patientName ? ` · ${escapeHtml(reminder.patientName)}` : "";
+    const noteLine = reminder.note ? `<p style="margin:0.4rem 0 0 0; color:var(--color-ink);">${escapeHtml(reminder.note)}</p>` : "";
+
+    item.innerHTML = `
+      <div style="flex:1; ${reminder.done ? "text-decoration:line-through;" : ""}">
+        <div class="alert-title">${escapeHtml(reminder.title)}${patientLine}</div>
+        <div class="alert-meta">${dateLine}${isOverdue ? " · Overdue" : ""}</div>
+        ${noteLine}
+      </div>
+    `;
+
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.flexDirection = "column";
+    actions.style.gap = "0.4rem";
+
+    const doneBtn = document.createElement("button");
+    doneBtn.className = "btn btn-ghost";
+    doneBtn.textContent = reminder.done ? "Mark not done" : "Mark done";
+    doneBtn.addEventListener("click", () => {
+      toggleReminderDone(reminder.id);
+      renderReminders();
+    });
+    actions.appendChild(doneBtn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "btn btn-ghost";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.addEventListener("click", () => {
+      deleteReminder(reminder.id);
+      renderReminders();
+    });
+    actions.appendChild(deleteBtn);
+
+    item.appendChild(actions);
+    list.appendChild(item);
+  });
+}
+
+renderReminders();
+
+// ---------------------------------------------------------------------
+// Account switcher: quick-switch between accounts created on this
+// device, without re-entering a password. This is only reasonable
+// because everything is stored locally on this one device anyway.
+// ---------------------------------------------------------------------
+function renderAccountSwitcher() {
+  const wrap = document.getElementById("accountSwitcherList");
+  const accounts = getAccounts();
+  const me = getCurrentUser();
+
+  wrap.innerHTML = "";
+
+  accounts.forEach((account) => {
+    const row = document.createElement("div");
+    row.className = "device-row";
+
+    const isSelf = me && me.email === account.email;
+
+    row.innerHTML = `
+      <div>
+        <strong>${escapeHtml(account.name)}</strong>
+        <div class="alert-meta">${escapeHtml(account.email)} ${account.isAdmin ? "· Admin" : ""}${isSelf ? " · Currently logged in" : ""}</div>
+      </div>
+    `;
+
+    if (!isSelf) {
+      const switchBtn = document.createElement("button");
+      switchBtn.className = "btn btn-ghost";
+      switchBtn.textContent = "Switch to this account";
+      switchBtn.addEventListener("click", () => {
+        setCurrentUser(account.email, true);
+        window.location.reload();
+      });
+      row.appendChild(switchBtn);
+    }
+
+    wrap.appendChild(row);
+  });
+}
+
+renderAccountSwitcher();
 
 // ---------------------------------------------------------------------
 // Gmail side panel.
