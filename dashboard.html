@@ -184,10 +184,18 @@
       <div class="main-header">
         <div>
           <h1>Reminders &amp; alerts</h1>
-          <p>Alarms sent from your connected Arduino device will appear here.</p>
+          <p>Alarms from your connected Arduino device, and messages sent in by patients.</p>
         </div>
       </div>
+
+      <div class="card" style="margin-bottom:1.4rem;">
+        <h3 class="section-title">Patient messages</h3>
+        <p class="section-sub">Sent from the patient contact page. Saved on this device only — see the README for what a multi-device version would need.</p>
+        <div id="patientMessagesList"><!-- filled in by dashboard.js --></div>
+      </div>
+
       <div class="card">
+        <h3 class="section-title">Device alerts</h3>
         <div class="alert-item warn">
           <div class="alert-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C98A2B" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
