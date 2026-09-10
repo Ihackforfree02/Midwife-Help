@@ -93,6 +93,38 @@ function deleteMessage(id) {
   saveMessages(getMessages().filter((m) => m.id !== id));
 }
 
+// ---------------------------------------------------------------------
+// Patients (very simple placeholder list — name + note). Same local
+// storage pattern as everything else in this demo.
+// ---------------------------------------------------------------------
+const PATIENTS_KEY = "mc_patients";
+
+function getPatients() {
+  const raw = localStorage.getItem(PATIENTS_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return [];
+  }
+}
+
+function savePatients(patients) {
+  localStorage.setItem(PATIENTS_KEY, JSON.stringify(patients));
+}
+
+function addPatient({ name, note }) {
+  const patients = getPatients();
+  const patient = { id: Date.now().toString(), name, note: note || "" };
+  patients.push(patient);
+  savePatients(patients);
+  return patient;
+}
+
+function deletePatient(id) {
+  savePatients(getPatients().filter((p) => p.id !== id));
+}
+
 function createAccount({ name, email, phone, password, isAdmin }) {
   const accounts = getAccounts();
   const account = {
