@@ -50,6 +50,7 @@ navLinks.forEach((link) => {
     document.getElementById("view-" + target).classList.add("active");
 
     if (target === "admin") renderAdminTable();
+    if (target === "reminders") renderPatientMessages();
   });
 });
 
@@ -177,6 +178,68 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
+
+// ---------------------------------------------------------------------
+// Patient messages (sent via contact.html), shown on the Reminders page.
+// ---------------------------------------------------------------------
+function renderPatientMessages() {
+  const list = document.getElementById("patientMessagesList");
+  const messages = getMessages();
+
+  if (messages.length === 0) {
+    list.innerHTML = '<p style="color:var(--color-ink-soft); margin:0;">No patient messages yet.</p>';
+    return;
+  }
+
+  list.innerHTML = "";
+
+  messages.forEach((message) => {
+    const item = document.createElement("div");
+    item.className = "alert-item " + (message.urgent ? "danger" : "");
+
+    const when = new Date(message.timestamp).toLocaleString();
+    const contactLine = message.contact ? ` · ${escapeHtml(message.contact)}` : "";
+    const readTag = message.read ? "" : ' <span class="badge badge-current">New</span>';
+
+    item.innerHTML = `
+      <div style="flex:1;">
+        <div class="alert-title">${escapeHtml(message.patientName)}${contactLine}${readTag}</div>
+        <div class="alert-meta">${when}</div>
+        <p style="margin:0.5rem 0 0 0; color:var(--color-ink);">${escapeHtml(message.body)}</p>
+      </div>
+    `;
+
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.flexDirection = "column";
+    actions.style.gap = "0.4rem";
+
+    if (!message.read) {
+      const readBtn = document.createElement("button");
+      readBtn.className = "btn btn-ghost";
+      readBtn.textContent = "Mark read";
+      readBtn.addEventListener("click", () => {
+        markMessageRead(message.id);
+        renderPatientMessages();
+      });
+      actions.appendChild(readBtn);
+    }
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "btn btn-ghost";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.addEventListener("click", () => {
+      deleteMessage(message.id);
+      renderPatientMessages();
+    });
+    actions.appendChild(deleteBtn);
+
+    item.appendChild(actions);
+    list.appendChild(item);
+  });
+}
+
+renderPatientMessages();
 
 // ---------------------------------------------------------------------
 // DEMO countdown timer.
