@@ -4,7 +4,14 @@
 // Checks the email/password against accounts stored in this browser's
 // localStorage (see auth.js). Admin accounts always skip verification.
 // Everyone else must have verified their email first (see verify.html).
+//
+// If someone's already logged in on this browser, we skip straight to
+// the dashboard instead of making them log in again every visit.
 // ---------------------------------------------------------------------
+
+if (getCurrentUser()) {
+  window.location.href = "dashboard.html";
+}
 
 const form = document.getElementById("loginForm");
 const errorBox = document.getElementById("loginError");
@@ -28,6 +35,7 @@ form.addEventListener("submit", function (event) {
 
   const email = document.getElementById("email").value.trim().toLowerCase();
   const password = document.getElementById("password").value;
+  const remember = document.getElementById("remember").checked;
 
   const account = findAccount(email);
 
@@ -43,6 +51,6 @@ form.addEventListener("submit", function (event) {
     return;
   }
 
-  setCurrentUser(account.email);
+  setCurrentUser(account.email, remember);
   window.location.href = "dashboard.html";
 });
