@@ -584,3 +584,72 @@ tr:last-child td { border-bottom: none; }
 
 .section-title { margin-bottom: 0.3rem; }
 .section-sub { color: var(--color-ink-soft); font-size: 0.92rem; margin-bottom: 1.4rem; }
+
+/* ===================================================================
+   Gmail side panel
+   =================================================================== */
+.mail-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 46, 43, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 40;
+}
+
+.mail-drawer-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mail-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(420px, 92vw);
+  background: var(--color-surface);
+  box-shadow: -6px 0 24px rgba(31, 46, 43, 0.15);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.mail-drawer.open {
+  transform: translateX(0);
+}
+
+.mail-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.mail-drawer-body {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.mail-drawer-body iframe {
+  width: 100%;
+  height: 45%;
+  border: none;
+  background: var(--color-surface-alt);
+}
+
+.mail-drawer-fallback {
+  padding: 1.2rem;
+  border-top: 1px dashed var(--color-border);
+  font-size: 0.9rem;
+}
+
+.mail-drawer-fallback p { margin-bottom: 1rem; }
