@@ -10,17 +10,26 @@ directly on GitHub Pages.
 
 ```
 midwife-connect/
-├── index.html          Login page
-├── dashboard.html       Dashboard (overview, appointments, reminders, patients, settings)
+├── index.html           Login page
+├── signup.html          New staff account sign-up
+├── verify.html          Email verification (demo — code shown on screen)
+├── admin-setup.html     One-time real admin account creation (local only)
+├── contact.html         Patient message/alert form (no login needed)
+├── dashboard.html       Dashboard (overview, appointments, reminders, patients, settings, admin panel)
 ├── css/
 │   └── styles.css       All styling (colours, type, layout)
 ├── js/
-│   ├── login.js         Demo login check
-│   └── dashboard.js      Sidebar navigation + demo countdown timer
+│   ├── auth.js          Shared account storage (localStorage) — accounts, login, verification, admin
+│   ├── login.js         Login page logic
+│   ├── signup.js        Sign-up page logic
+│   ├── verify.js        Verification page logic
+│   ├── admin-setup.js   Admin setup page logic
+│   └── dashboard.js     Sidebar navigation, profile editing, admin panel, demo countdown timer
 ├── images/
 │   ├── logo.svg              Placeholder logo — swap for the real one
 │   ├── hero-placeholder.svg  Placeholder brand image on the login page
 │   └── avatar-placeholder.svg Placeholder profile photo
+├── .gitignore
 └── README.md
 ```
 
@@ -37,18 +46,65 @@ python3 -m http.server 8000
 
 Then visit `http://localhost:8000`.
 
-## Demo login
+## Accounts, sign-up, and verification
 
-This is a front-end-only demo. There's no real backend or account system yet,
-so the login form just checks against a hardcoded email/password in `login.js`:
+There's no backend, so accounts are stored in **this browser's localStorage**
+(see `js/auth.js`). That has a few real consequences worth understanding:
 
+- Accounts made in one browser don't exist in any other browser or device.
+  There is no shared, central list of staff — each computer keeps its own.
+- Passwords are stored in plain text. That's acceptable for a school demo,
+  but a real product would need a proper backend that hashes passwords —
+  never store real passwords like this in production.
+- Signing up doesn't send a real email. `signup.html` generates a 6-digit
+  code and simply displays it on the verification page, clearly labelled as
+  demo mode, so the flow can be shown working without a mail server.
+
+**One sample account is pre-loaded** so you can explore the dashboard
+immediately without signing up:
 - Email: `demo@midwifeconnect.org`
 - Password: `demo1234`
 
-**Before this handles any real names, patient details, or staff logins**, the
-login form needs to submit to a real authentication server instead. That's a
-separate piece of work (outside the scope of the Arduino/STEM project) and
-should not be skipped if this were ever used with real data.
+### Setting up your own admin account
+
+Go to `admin-setup.html` once, in your own browser. It lets you create an
+admin account with your own real email and password — admins skip email
+verification entirely. That account is saved only in `localStorage`, so
+**it is never written into any file and never gets pushed to GitHub.**
+This is deliberate: real credentials should never live in source code that
+ends up in a public repository.
+
+Once one admin exists, `admin-setup.html` won't let you create a second one
+from that screen — instead, log in as the admin and use the **Admin panel**
+in the dashboard to promote any other account to admin, or manually verify
+someone who's stuck.
+
+**Important:** because accounts are per-browser, your admin account only
+exists on the device/browser where you ran the setup. If you open the
+deployed GitHub Pages site on a different device, you'd need to run
+`admin-setup.html` again there — this is a real limitation of a backend-free
+static site, not a bug.
+
+## Patient messages
+
+`contact.html` lets a patient send a message or urgent alert with no login
+needed. It's shown on the midwife's **Reminders** page under "Patient
+messages."
+
+Two honest limitations to know:
+- **No real email forwarding.** A static site has nowhere to receive email —
+  that needs a real mail server or a service like a webhook-based email
+  forwarder feeding a backend. This project doesn't have a backend, so this
+  isn't implemented; a message only travels from `contact.html` to the
+  dashboard through this browser's local storage.
+- **Same-browser only, for the same reason as accounts.** A message a
+  patient sends on their own phone will not appear on a midwife's separate
+  computer. To demo the feature, open `contact.html` and `dashboard.html` in
+  the same browser.
+
+If this ever became a real deployed tool, both of these would need a proper
+backend (a small server or a service like Firebase) so messages — and real
+emails — could actually move between different people's devices.
 
 ## Placeholder images
 
