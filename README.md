@@ -106,6 +106,36 @@ If this ever became a real deployed tool, both of these would need a proper
 backend (a small server or a service like Firebase) so messages — and real
 emails — could actually move between different people's devices.
 
+## Reminders
+
+The **Reminders** page has a "My reminders" section — add your own reminder
+(title, optional date/time, optional note), mark it done, or delete it.
+Reminders sort soonest-first, and an overdue one (a date in the past that
+isn't marked done) shows in red.
+
+You can also set a reminder while adding a patient: the "Add a patient" form
+has optional date/time and note fields — filling either one creates a linked
+reminder automatically, tagged with that patient's name.
+
+## Staying logged in
+
+Logging in now actually keeps you logged in — previously the login page
+showed the form every time even though your session was already saved,
+which was the annoying "keeps making me log in" bug. Fixed two ways:
+
+- The login page now checks first: if you're already logged in on this
+  browser, it sends you straight to the dashboard instead of showing the
+  form again.
+- The **"Keep me logged in"** checkbox now does something. Checked (the
+  default) keeps you logged in even after closing the browser. Unchecked
+  logs you out automatically when the browser closes.
+
+**Switching between accounts** (e.g. your admin account and a test staff
+account) no longer means logging out and typing a password again — go to
+**Settings → Accounts on this device** and click "Switch to this account."
+This only works because everything is stored locally on one device anyway;
+it's a demo convenience, not something a real multi-user product would do.
+
 ## Gmail panel
 
 There's a "Mail" button at the bottom of the sidebar that slides out a side
