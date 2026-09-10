@@ -36,7 +36,7 @@ renderCurrentUser();
 // Sidebar navigation: shows/hides views. No page reloads, no routing
 // library needed — just plain DOM show/hide.
 // ---------------------------------------------------------------------
-const navLinks = document.querySelectorAll(".nav-link");
+const navLinks = document.querySelectorAll(".nav-link:not(.mail-toggle-btn)");
 const views = document.querySelectorAll(".view");
 
 navLinks.forEach((link) => {
@@ -240,6 +240,113 @@ function renderPatientMessages() {
 }
 
 renderPatientMessages();
+
+// ---------------------------------------------------------------------
+// Patients: add / list / delete.
+// ---------------------------------------------------------------------
+const addPatientBtn = document.getElementById("addPatientBtn");
+const addPatientForm = document.getElementById("addPatientForm");
+const cancelPatientBtn = document.getElementById("cancelPatientBtn");
+const savePatientBtn = document.getElementById("savePatientBtn");
+
+addPatientBtn.addEventListener("click", () => {
+  addPatientForm.style.display = "block";
+  addPatientBtn.style.display = "none";
+  document.getElementById("newPatientName").focus();
+});
+
+cancelPatientBtn.addEventListener("click", () => {
+  addPatientForm.style.display = "none";
+  addPatientBtn.style.display = "inline-flex";
+  document.getElementById("newPatientName").value = "";
+  document.getElementById("newPatientNote").value = "";
+});
+
+savePatientBtn.addEventListener("click", () => {
+  const name = document.getElementById("newPatientName").value.trim();
+  const note = document.getElementById("newPatientNote").value.trim();
+
+  if (!name) {
+    document.getElementById("newPatientName").focus();
+    return;
+  }
+
+  addPatient({ name, note });
+
+  document.getElementById("newPatientName").value = "";
+  document.getElementById("newPatientNote").value = "";
+  addPatientForm.style.display = "none";
+  addPatientBtn.style.display = "inline-flex";
+
+  renderPatients();
+});
+
+function renderPatients() {
+  const patients = getPatients();
+  const emptyState = document.getElementById("patientsEmptyState");
+  const listWrap = document.getElementById("patientsListWrap");
+  const list = document.getElementById("patientsList");
+
+  if (patients.length === 0) {
+    emptyState.style.display = "block";
+    listWrap.style.display = "none";
+    return;
+  }
+
+  emptyState.style.display = "none";
+  listWrap.style.display = "block";
+  list.innerHTML = "";
+
+  patients.forEach((patient) => {
+    const item = document.createElement("li");
+    item.className = "schedule-item";
+    item.innerHTML = `
+      <div class="schedule-info">
+        <div class="schedule-name">${escapeHtml(patient.name)}</div>
+        ${patient.note ? `<div class="schedule-type">${escapeHtml(patient.note)}</div>` : ""}
+      </div>
+    `;
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "btn btn-ghost";
+    deleteBtn.textContent = "Remove";
+    deleteBtn.addEventListener("click", () => {
+      deletePatient(patient.id);
+      renderPatients();
+    });
+    item.appendChild(deleteBtn);
+    list.appendChild(item);
+  });
+}
+
+renderPatients();
+
+// ---------------------------------------------------------------------
+// Gmail side panel.
+//
+// Google blocks Gmail from being shown inside an iframe (a security
+// setting on Google's end — X-Frame-Options / CSP — which can't be
+// worked around from this site). The iframe below is left in so it's
+// clear what's being attempted, but in practice the part that actually
+// works is the "Open Gmail" button underneath it.
+// ---------------------------------------------------------------------
+const mailToggleBtn = document.getElementById("mailToggleBtn");
+const mailDrawer = document.getElementById("mailDrawer");
+const mailDrawerClose = document.getElementById("mailDrawerClose");
+const mailDrawerBackdrop = document.getElementById("mailDrawerBackdrop");
+
+function openMailDrawer() {
+  mailDrawer.classList.add("open");
+  mailDrawerBackdrop.classList.add("open");
+}
+
+function closeMailDrawer() {
+  mailDrawer.classList.remove("open");
+  mailDrawerBackdrop.classList.remove("open");
+}
+
+mailToggleBtn.addEventListener("click", openMailDrawer);
+mailDrawerClose.addEventListener("click", closeMailDrawer);
+mailDrawerBackdrop.addEventListener("click", closeMailDrawer);
 
 // ---------------------------------------------------------------------
 // DEMO countdown timer.
