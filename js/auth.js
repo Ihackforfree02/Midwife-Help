@@ -125,6 +125,54 @@ function deletePatient(id) {
   savePatients(getPatients().filter((p) => p.id !== id));
 }
 
+// ---------------------------------------------------------------------
+// Reminders. Can be created standalone, or linked to a patient (set
+// while adding that patient). Same local-storage pattern as everything
+// else here.
+// ---------------------------------------------------------------------
+const REMINDERS_KEY = "mc_reminders";
+
+function getReminders() {
+  const raw = localStorage.getItem(REMINDERS_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveReminders(reminders) {
+  localStorage.setItem(REMINDERS_KEY, JSON.stringify(reminders));
+}
+
+function addReminder({ title, note, datetime, patientName }) {
+  const reminders = getReminders();
+  const reminder = {
+    id: Date.now().toString(),
+    title,
+    note: note || "",
+    datetime: datetime || "",
+    patientName: patientName || "",
+    done: false,
+    createdAt: new Date().toISOString(),
+  };
+  reminders.push(reminder);
+  saveReminders(reminders);
+  return reminder;
+}
+
+function toggleReminderDone(id) {
+  const reminders = getReminders();
+  const reminder = reminders.find((r) => r.id === id);
+  if (reminder) reminder.done = !reminder.done;
+  saveReminders(reminders);
+}
+
+function deleteReminder(id) {
+  saveReminders(getReminders().filter((r) => r.id !== id));
+}
+
 function createAccount({ name, email, phone, password, isAdmin }) {
   const accounts = getAccounts();
   const account = {
@@ -160,18 +208,29 @@ function verifyAccount(email, code) {
   return { ok: true };
 }
 
-function setCurrentUser(email) {
-  localStorage.setItem(CURRENT_USER_KEY, email.trim().toLowerCase());
+function setCurrentUser(email, remember = true) {
+  const normalized = email.trim().toLowerCase();
+  // Always clear both first so switching "remember" behaviour doesn't
+  // leave a stale copy sitting in the other storage.
+  localStorage.removeItem(CURRENT_USER_KEY);
+  sessionStorage.removeItem(CURRENT_USER_KEY);
+
+  if (remember) {
+    localStorage.setItem(CURRENT_USER_KEY, normalized);
+  } else {
+    sessionStorage.setItem(CURRENT_USER_KEY, normalized);
+  }
 }
 
 function getCurrentUser() {
-  const email = localStorage.getItem(CURRENT_USER_KEY);
+  const email = localStorage.getItem(CURRENT_USER_KEY) || sessionStorage.getItem(CURRENT_USER_KEY);
   if (!email) return null;
   return findAccount(email);
 }
 
 function logout() {
   localStorage.removeItem(CURRENT_USER_KEY);
+  sessionStorage.removeItem(CURRENT_USER_KEY);
 }
 
 function updateAccount(email, updates) {
