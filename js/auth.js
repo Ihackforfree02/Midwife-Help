@@ -41,6 +41,58 @@ function anyAdminExists() {
   return getAccounts().some((a) => a.isAdmin);
 }
 
+// ---------------------------------------------------------------------
+// Patient messages / alerts.
+//
+// A patient fills in contact.html (no login needed) and the message is
+// saved here, same idea as accounts: local to this browser only. In a
+// real deployment with patients and midwives on different devices, this
+// would need a real backend so a message written on one device is
+// readable on another.
+// ---------------------------------------------------------------------
+const MESSAGES_KEY = "mc_messages";
+
+function getMessages() {
+  const raw = localStorage.getItem(MESSAGES_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveMessages(messages) {
+  localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+}
+
+function addMessage({ patientName, contact, urgent, body }) {
+  const messages = getMessages();
+  const message = {
+    id: Date.now().toString(),
+    patientName,
+    contact: contact || "",
+    urgent: !!urgent,
+    body,
+    read: false,
+    timestamp: new Date().toISOString(),
+  };
+  messages.unshift(message);
+  saveMessages(messages);
+  return message;
+}
+
+function markMessageRead(id) {
+  const messages = getMessages();
+  const message = messages.find((m) => m.id === id);
+  if (message) message.read = true;
+  saveMessages(messages);
+}
+
+function deleteMessage(id) {
+  saveMessages(getMessages().filter((m) => m.id !== id));
+}
+
 function createAccount({ name, email, phone, password, isAdmin }) {
   const accounts = getAccounts();
   const account = {
