@@ -136,6 +136,62 @@ account) no longer means logging out and typing a password again — go to
 This only works because everything is stored locally on one device anyway;
 it's a demo convenience, not something a real multi-user product would do.
 
+## Appointments and the live timer
+
+The Appointments page now supports full add/edit/cancel, with a real start
+time and duration for each one. The Overview page's timer isn't decorative
+anymore — it reads the actual current appointment (the earliest one not
+marked done), compares it to the real clock, and counts down live:
+
+- Before the start time: shows "Starts at [time]."
+- During the appointment: counts down to the scheduled end time, turning
+  amber in the last 2 minutes.
+- Past the end time: shows "+[time] overdue" in red.
+
+"Edit timer" lets you change the current appointment's duration directly
+from the Overview card; "Mark done & go to next" advances the queue. Both
+of those are just shortcuts to the same underlying appointment data shown
+on the Appointments page.
+
+## Reminders that actually go off
+
+Reminders are checked every few seconds. The moment a reminder's set time
+arrives, it fires a toast pop-up (bottom-right) and shows up in the
+notification bell — once each, not repeatedly. This works even if you're
+not looking at the Reminders page, and even across two tabs of the same
+browser (since they share the same local storage).
+
+## Notifications
+
+The bell icon (top-right, visible on every page) shows a live count of
+unread patient messages, reminders that have come due, and unread chat
+messages. Click it for a list — clicking an item jumps to the right page.
+Toast pop-ups also appear the moment something new comes in.
+
+## Chat
+
+A simple 1:1 chat between accounts on this device (**Chat** in the
+sidebar). Pick a person from the list, send messages, see them arrive.
+Same limitation as everything else here: since there's no backend, this
+only really works between accounts that exist **in this same browser** —
+two real people on two real devices wouldn't be able to message each other
+without a proper backend behind it.
+
+## Admin panel
+
+Lists every account on this device and lets you promote or revoke admin
+status, or manually verify a stuck account. If this wasn't showing up or
+working for you before, it was almost always because the account you were
+logged in as wasn't actually an admin yet — see "Setting up your own admin
+account" above, which now fixes a broken/stuck account rather than
+refusing to touch it.
+
+## Multiple phones and emails
+
+Settings → Profile now has "Additional emails" and "Phone numbers" as
+add/remove lists, separate from your one login email. Add as many as you
+like, remove any, and save.
+
 ## Gmail panel
 
 There's a "Mail" button at the bottom of the sidebar that slides out a side
