@@ -29,43 +29,38 @@
   <div class="login-form-panel">
     <div class="login-form-wrap">
 
-      <div id="alreadySetUp" style="display:none;">
-        <h1>Admin already set up</h1>
-        <p>This browser already has an admin account. If you meant to create another one, do it from the Admin panel once you're logged in.</p>
-        <a class="btn btn-primary btn-block" href="index.html">Go to login</a>
+      <h1>Create or fix your admin account</h1>
+      <p>Enter your real email and a password below.</p>
+
+      <div class="demo-hint" id="existingAdminNotice" style="display:none;">
+        An admin already exists on this device. That's fine — submitting this form with your email will either add another admin, or fix the account below if it already exists but isn't working.
       </div>
 
-      <div id="setupForm">
-        <h1>Create the admin account</h1>
-        <p>Use your own email and a real password — this stays local to your browser and is never pushed to GitHub.</p>
+      <div class="login-error" id="setupError">Please fill in every field.</div>
 
-        <div class="login-error" id="setupError">Please fill in every field.</div>
-
-        <form id="adminSetupForm" novalidate>
-          <div class="field">
-            <label for="name">Full name</label>
-            <input type="text" id="name" required>
-          </div>
-          <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" required>
-          </div>
-          <div class="field">
-            <label for="password">Password</label>
-            <input type="password" id="password" required minlength="6">
-          </div>
-          <div class="field">
-            <label for="confirmPassword">Confirm password</label>
-            <input type="password" id="confirmPassword" required minlength="6">
-          </div>
-          <button type="submit" class="btn btn-primary btn-block">Create admin account</button>
-        </form>
-
-        <div class="demo-hint">
-          Admin accounts skip email verification entirely, so make sure you trust this device. This screen only ever needs to be used once per browser.
+      <form id="adminSetupForm" novalidate>
+        <div class="field">
+          <label for="name">Full name</label>
+          <input type="text" id="name" required>
         </div>
-      </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" required minlength="6">
+        </div>
+        <div class="field">
+          <label for="confirmPassword">Confirm password</label>
+          <input type="password" id="confirmPassword" required minlength="6">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Save admin account</button>
+      </form>
 
+      <div class="demo-hint">
+        If this email already has an account on this device (even a stuck, unverified one from signing up), submitting this form fixes it: it becomes an admin, gets marked verified, and its password is reset to whatever you enter here. Admin accounts skip email verification entirely.
+      </div>
     </div>
   </div>
 
