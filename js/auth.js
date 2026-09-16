@@ -155,11 +155,19 @@ function addReminder({ title, note, datetime, patientName }) {
     datetime: datetime || "",
     patientName: patientName || "",
     done: false,
+    fired: false, // whether its at-time notification has already been shown
     createdAt: new Date().toISOString(),
   };
   reminders.push(reminder);
   saveReminders(reminders);
   return reminder;
+}
+
+function markReminderFired(id) {
+  const reminders = getReminders();
+  const reminder = reminders.find((r) => r.id === id);
+  if (reminder) reminder.fired = true;
+  saveReminders(reminders);
 }
 
 function toggleReminderDone(id) {
@@ -173,12 +181,160 @@ function deleteReminder(id) {
   saveReminders(getReminders().filter((r) => r.id !== id));
 }
 
+// ---------------------------------------------------------------------
+// Appointments.
+//
+// Each appointment has a real start time (ISO datetime string, today's
+// date) and a duration in minutes, plus a "done" flag the midwife sets
+// manually (there's no way for the site to know an appointment finished
+// early or ran over without being told). Everything time-related on the
+// dashboard — the countdown timer, "time remaining today," schedule
+// status badges — is calculated live from this data and the actual
+// current time, rather than being hardcoded.
+// ---------------------------------------------------------------------
+const APPOINTMENTS_KEY = "mc_appointments";
+
+function getAppointments() {
+  const raw = localStorage.getItem(APPOINTMENTS_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveAppointments(appointments) {
+  localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(appointments));
+}
+
+function getSortedAppointments() {
+  return getAppointments()
+    .slice()
+    .sort((a, b) => new Date(a.start) - new Date(b.start));
+}
+
+function addAppointment({ patientName, type, start, durationMinutes, done }) {
+  const appointments = getAppointments();
+  const appointment = {
+    id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+    patientName,
+    type: type || "Appointment",
+    start, // ISO datetime string
+    durationMinutes: Number(durationMinutes) || 20,
+    done: !!done,
+  };
+  appointments.push(appointment);
+  saveAppointments(appointments);
+  return appointment;
+}
+
+function updateAppointment(id, updates) {
+  const appointments = getAppointments();
+  const appointment = appointments.find((a) => a.id === id);
+  if (!appointment) return null;
+  Object.assign(appointment, updates);
+  saveAppointments(appointments);
+  return appointment;
+}
+
+function deleteAppointment(id) {
+  saveAppointments(getAppointments().filter((a) => a.id !== id));
+}
+
+// ---------------------------------------------------------------------
+// Seed a realistic-looking demo day the first time this loads, timed
+// relative to right now so the dashboard looks "live" immediately:
+// two appointments already finished, one in progress, two upcoming.
+// ---------------------------------------------------------------------
+function seedDemoAppointments() {
+  if (getAppointments().length > 0) return;
+
+  const now = new Date();
+  const at = (minutesOffset) => new Date(now.getTime() + minutesOffset * 60000).toISOString();
+
+  const demo = [
+    { patientName: "Patient A", type: "Routine antenatal", start: at(-90), durationMinutes: 20, done: true },
+    { patientName: "Patient B", type: "First consultation", start: at(-60), durationMinutes: 30, done: true },
+    { patientName: "Patient C", type: "Postnatal review", start: at(-10), durationMinutes: 20, done: false },
+    { patientName: "Patient D", type: "Routine antenatal", start: at(20), durationMinutes: 20, done: false },
+    { patientName: "Patient E", type: "Routine antenatal", start: at(50), durationMinutes: 20, done: false },
+  ];
+
+  demo.forEach((appt) => addAppointment(appt));
+}
+
+seedDemoAppointments();
+
+// ---------------------------------------------------------------------
+// Staff-to-staff chat.
+//
+// A simple 1:1 message list between accounts on this device. Same
+// local-storage limitation as everything else: since there's no
+// backend, this only really demonstrates the concept when both
+// "people" are accounts you've created in this same browser.
+// ---------------------------------------------------------------------
+const CHATS_KEY = "mc_chats";
+
+function getChatMessages() {
+  const raw = localStorage.getItem(CHATS_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveChatMessages(messages) {
+  localStorage.setItem(CHATS_KEY, JSON.stringify(messages));
+}
+
+function sendChatMessage({ from, to, body }) {
+  const messages = getChatMessages();
+  const message = {
+    id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+    from: from.trim().toLowerCase(),
+    to: to.trim().toLowerCase(),
+    body,
+    read: false,
+    timestamp: new Date().toISOString(),
+  };
+  messages.push(message);
+  saveChatMessages(messages);
+  return message;
+}
+
+function getConversation(emailA, emailB) {
+  const a = emailA.trim().toLowerCase();
+  const b = emailB.trim().toLowerCase();
+  return getChatMessages()
+    .filter((m) => (m.from === a && m.to === b) || (m.from === b && m.to === a))
+    .sort((x, y) => new Date(x.timestamp) - new Date(y.timestamp));
+}
+
+function markConversationRead(myEmail, otherEmail) {
+  const me = myEmail.trim().toLowerCase();
+  const other = otherEmail.trim().toLowerCase();
+  const messages = getChatMessages();
+  messages.forEach((m) => {
+    if (m.to === me && m.from === other) m.read = true;
+  });
+  saveChatMessages(messages);
+}
+
+function countUnreadChatMessages(myEmail) {
+  const me = myEmail.trim().toLowerCase();
+  return getChatMessages().filter((m) => m.to === me && !m.read).length;
+}
+
 function createAccount({ name, email, phone, password, isAdmin }) {
   const accounts = getAccounts();
   const account = {
     name,
     email: email.trim().toLowerCase(),
-    phone: phone || "",
+    phones: phone ? [phone] : [], // list of phone numbers
+    emails: [], // additional contact emails, separate from the login email above
     password, // plain text — demo only, see note above
     isAdmin: !!isAdmin,
     verified: !!isAdmin, // admins skip verification entirely
@@ -188,6 +344,30 @@ function createAccount({ name, email, phone, password, isAdmin }) {
   accounts.push(account);
   saveAccounts(accounts);
   return account;
+}
+
+// ---------------------------------------------------------------------
+// Used by admin-setup.html. If an account with this email already
+// exists on this device (e.g. from an earlier sign-up attempt that
+// never got verified), this turns it into a working admin account and
+// resets its password, rather than blocking with "already exists".
+// If no account exists yet, it creates a fresh admin account.
+// ---------------------------------------------------------------------
+function claimAdmin({ name, email, password }) {
+  const normalized = email.trim().toLowerCase();
+  const existing = findAccount(normalized);
+
+  if (existing) {
+    return updateAccount(normalized, {
+      name,
+      password,
+      isAdmin: true,
+      verified: true,
+      verificationCode: null,
+    });
+  }
+
+  return createAccount({ name, email: normalized, phone: "", password, isAdmin: true });
 }
 
 function generateCode() {
