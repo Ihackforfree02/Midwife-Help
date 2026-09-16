@@ -653,3 +653,157 @@ tr:last-child td { border-bottom: none; }
 }
 
 .mail-drawer-fallback p { margin-bottom: 1rem; }
+
+/* ===================================================================
+   Notification bell + dropdown
+   =================================================================== */
+.notif-bell-wrap {
+  position: fixed;
+  top: 1.2rem;
+  right: 1.6rem;
+  z-index: 30;
+}
+
+.notif-bell-btn {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+}
+
+.notif-bell-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-card);
+  display: none;
+}
+
+.notif-dropdown.open { display: block; }
+
+.notif-dropdown-header {
+  padding: 0.8rem 1rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.notif-dropdown-item {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.notif-dropdown-item:hover { background: var(--color-surface-alt); }
+.notif-dropdown-item:last-child { border-bottom: none; }
+
+/* ===================================================================
+   Toasts
+   =================================================================== */
+.toast-container {
+  position: fixed;
+  bottom: 1.4rem;
+  right: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  z-index: 60;
+  width: 300px;
+}
+
+.toast {
+  background: var(--color-primary-dark);
+  color: #fff;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-s);
+  box-shadow: var(--shadow-card);
+  font-size: 0.86rem;
+  animation: toast-in 0.2s ease;
+}
+
+.toast.toast-danger { background: var(--color-danger); }
+.toast.toast-warn { background: var(--color-warn); color: var(--color-ink); }
+
+.toast strong { display: block; margin-bottom: 0.2rem; }
+
+@keyframes toast-in {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ===================================================================
+   Chat
+   =================================================================== */
+.chat-contact-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.6em 0.7em;
+  border-radius: var(--radius-s);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-bottom: 0.15rem;
+}
+
+.chat-contact-btn:hover { background: var(--color-surface-alt); }
+.chat-contact-btn.active { background: var(--color-primary); color: #fff; }
+
+.chat-bubble {
+  max-width: 75%;
+  padding: 0.6em 0.85em;
+  border-radius: var(--radius-m);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.chat-bubble.mine {
+  align-self: flex-end;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.chat-bubble.theirs {
+  align-self: flex-start;
+  background: var(--color-surface-alt);
+  color: var(--color-ink);
+}
+
+.chat-bubble .chat-time {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-top: 0.3em;
+}
