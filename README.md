@@ -192,6 +192,56 @@ Settings → Profile now has "Additional emails" and "Phone numbers" as
 add/remove lists, separate from your one login email. Add as many as you
 like, remove any, and save.
 
+## Moving data between devices (export / import)
+
+There's no backend, so nothing syncs by itself — but **Settings → Backup &
+transfer** gives you a manual way around it:
+
+- **Export all data** downloads one `.json` file containing every account,
+  patient, appointment, reminder, message and chat on this device.
+- **Import from file** reads one of those files back in and **merges** it:
+  it adds anything new without deleting what's already there.
+
+So if a friend makes an account on their own laptop, they export, send you
+the file, and you import it — their account then shows up in your admin
+panel and chat list. It's manual, but it genuinely moves data between
+devices, which localStorage alone cannot do.
+
+This is also a sensible backup habit: browsers do clear site data
+sometimes, and an export is the only copy that survives that.
+
+## Live updates between tabs
+
+If you have the dashboard open in two tabs of the same browser — or a
+patient sends a message from `contact.html` in another tab — the dashboard
+updates by itself, no refresh needed. (Still same-browser only; it can't
+reach another device.)
+
+## Due dates and gestational age
+
+Patients can have an estimated due date (EDD). The Patients page then
+shows gestational age in the standard `weeks+days` format (e.g. `32+4`),
+counted the usual way — 40 weeks from the last menstrual period, worked
+backwards from the due date — along with how many days are left, and an
+"Overdue" badge once the due date passes. This recalculates from the real
+date every time the page loads, so it's never stale.
+
+## Handover notes
+
+Each patient has a running notes list (the "Notes" button on the Patients
+page) — type a line, hit Add, and it's timestamped and saved. This exists
+because documentation burden is consistently the thing midwives report
+taking the most time away from actual care, so the goal was a note that
+takes one line and no navigation.
+
+## Knock-on delay times
+
+When you're running over on the current appointment, the Overview
+schedule shows each later appointment's **likely** start time in red
+alongside its booked time — so "how far behind am I, and what does that
+mean for everyone after this" is answerable at a glance instead of doing
+the maths in your head.
+
 ## Gmail panel
 
 There's a "Mail" button at the bottom of the sidebar that slides out a side
