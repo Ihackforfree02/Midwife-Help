@@ -149,19 +149,30 @@
         <h3 class="section-title" id="apptFormTitle">Add appointment</h3>
         <div class="form-row">
           <label for="apptPatientName">Patient name</label>
-          <input type="text" id="apptPatientName">
+          <input type="text" id="apptPatientName" list="patientNameOptions" autocomplete="off">
+          <datalist id="patientNameOptions"></datalist>
         </div>
         <div class="form-row">
           <label for="apptType">Type</label>
-          <input type="text" id="apptType" placeholder="e.g. Routine antenatal">
+          <input type="text" id="apptType" list="apptTypeOptions" placeholder="e.g. Routine antenatal" autocomplete="off">
+          <datalist id="apptTypeOptions">
+            <option value="Routine antenatal"></option>
+            <option value="First consultation"></option>
+            <option value="Postnatal review"></option>
+            <option value="Booking appointment"></option>
+            <option value="Home visit"></option>
+            <option value="Phone consultation"></option>
+          </datalist>
         </div>
         <div class="form-row">
           <label for="apptStartTime">Start time (today)</label>
           <input type="time" id="apptStartTime">
+          <div class="quick-chips" id="startTimeChips"></div>
         </div>
         <div class="form-row">
           <label for="apptDuration">Duration (minutes)</label>
           <input type="number" id="apptDuration" min="1" value="20" style="max-width:120px;">
+          <div class="quick-chips" id="durationChips"></div>
         </div>
         <button class="btn btn-primary" id="saveAppointmentBtn">Save appointment</button>
         <button class="btn btn-ghost" id="cancelAppointmentFormBtn">Cancel</button>
@@ -384,6 +395,28 @@
         </div>
 
         <button class="btn btn-primary" id="saveProfileBtn">Save changes</button>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.4rem;">
+        <h3 class="section-title">Appointment alerts</h3>
+        <p class="section-sub">Get alerted when an appointment starts and when it's due to end.</p>
+        <div class="device-row">
+          <div>
+            <strong>On-screen alerts</strong>
+            <div class="alert-meta">Always on — pop-ups appear in the corner of this page.</div>
+          </div>
+          <span class="badge badge-done">On</span>
+        </div>
+        <div class="device-row">
+          <div>
+            <strong>Desktop notifications</strong>
+            <div class="alert-meta" id="desktopNotifStatus">Not enabled</div>
+          </div>
+          <button class="btn btn-ghost" id="enableDesktopNotifBtn">Enable</button>
+        </div>
+        <div class="connection-note">
+          Desktop notifications show even when this tab isn't the one you're looking at — useful if you're working in another window. Your browser will ask permission once.
+        </div>
       </div>
 
       <div class="card" style="margin-bottom: 1.4rem;">
