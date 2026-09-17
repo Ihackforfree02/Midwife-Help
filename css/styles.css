@@ -807,3 +807,36 @@ tr:last-child td { border-bottom: none; }
   opacity: 0.7;
   margin-top: 0.3em;
 }
+
+/* ===================================================================
+   Quick-pick chips (appointment form shortcuts)
+   =================================================================== */
+.quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.quick-chip {
+  padding: 0.35em 0.8em;
+  border-radius: 99px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.quick-chip:hover {
+  background: var(--color-surface-alt);
+  border-color: var(--color-primary);
+  color: var(--color-ink);
+}
+
+.quick-chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
