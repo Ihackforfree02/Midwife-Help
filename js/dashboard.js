@@ -851,6 +851,40 @@ function closeAppointmentForm() {
 addAppointmentBtn.addEventListener("click", () => openAppointmentForm(null));
 cancelAppointmentFormBtn.addEventListener("click", closeAppointmentForm);
 
+// Reset the day: everything back to not-done, alerts re-armed, so the
+// same schedule can be run through again.
+document.getElementById("resetDayBtn").addEventListener("click", () => {
+  const appointments = getAppointments();
+  if (appointments.length === 0) return;
+
+  appointments.forEach((appt) => updateAppointment(appt.id, { done: false }));
+  clearAllAlertHistory();
+
+  closeAppointmentForm();
+  renderAppointmentsTable();
+  renderOverview();
+  showToast("Day reset", `${appointments.length} appointments marked not done.`);
+});
+
+// Clear all: delete every appointment. Asks first, since it can't be undone.
+document.getElementById("clearAllAppointmentsBtn").addEventListener("click", () => {
+  const appointments = getAppointments();
+  if (appointments.length === 0) return;
+
+  const confirmed = window.confirm(
+    `Delete all ${appointments.length} appointments? This can't be undone.`
+  );
+  if (!confirmed) return;
+
+  appointments.forEach((appt) => deleteAppointment(appt.id));
+  clearAllAlertHistory();
+
+  closeAppointmentForm();
+  renderAppointmentsTable();
+  renderOverview();
+  showToast("Appointments cleared", "The schedule is now empty.");
+});
+
 saveAppointmentBtn.addEventListener("click", saveAppointmentFromForm);
 
 // Enter anywhere in the form saves it, so adding a booking can be done
@@ -880,6 +914,7 @@ function saveAppointmentFromForm() {
 
   if (editingAppointmentId) {
     updateAppointment(editingAppointmentId, { patientName, type, start, durationMinutes });
+    clearAlertsForAppointment(editingAppointmentId);
     showToast("Appointment updated", `${patientName} at ${formatClock(new Date(start))}`);
   } else {
     addAppointment({ patientName, type, start, durationMinutes });
@@ -1061,6 +1096,7 @@ function renderOverview() {
     nextApptBtn.style.display = "none";
     editTimerBtn.style.display = "none";
     editTimerForm.style.display = "none";
+    document.getElementById("timerQuickControls").style.display = "none";
     statOver.textContent = "—";
     statOverLabel.textContent = "Running over schedule";
     return;
@@ -1068,6 +1104,7 @@ function renderOverview() {
 
   nextApptBtn.style.display = "inline-flex";
   editTimerBtn.style.display = "inline-flex";
+  document.getElementById("timerQuickControls").style.display = "flex";
 
   const start = new Date(currentAppt.start);
   const end = new Date(start.getTime() + currentAppt.durationMinutes * 60000);
@@ -1122,10 +1159,10 @@ nextApptBtn.addEventListener("click", () => {
 });
 
 editTimerBtn.addEventListener("click", () => {
-  const appointments = getSortedAppointments();
-  const currentAppt = getCurrentAppointment(appointments);
+  const currentAppt = getCurrentAppointment(getSortedAppointments());
   if (!currentAppt) return;
   document.getElementById("editTimerDuration").value = currentAppt.durationMinutes;
+  document.getElementById("editTimerStart").value = timeInputValue(currentAppt.start);
   editTimerForm.style.display = "block";
 });
 
@@ -1134,12 +1171,63 @@ document.getElementById("cancelTimerEditBtn").addEventListener("click", () => {
 });
 
 document.getElementById("saveTimerEditBtn").addEventListener("click", () => {
-  const appointments = getSortedAppointments();
-  const currentAppt = getCurrentAppointment(appointments);
+  const currentAppt = getCurrentAppointment(getSortedAppointments());
   if (!currentAppt) return;
+
   const newDuration = Number(document.getElementById("editTimerDuration").value) || currentAppt.durationMinutes;
-  updateAppointment(currentAppt.id, { durationMinutes: newDuration });
+  const newStartTime = document.getElementById("editTimerStart").value;
+
+  const updates = { durationMinutes: newDuration };
+  if (newStartTime) updates.start = combineTodayTime(newStartTime);
+
+  updateAppointment(currentAppt.id, updates);
+  clearAlertsForAppointment(currentAppt.id);
+
   editTimerForm.style.display = "none";
+  renderOverview();
+  renderAppointmentsTable();
+});
+
+// ---------------------------------------------------------------------
+// Quick timer controls.
+//
+// The timer runs off the clock, so "give it 5 more minutes" means
+// extending the duration, and "restart now" means moving the start
+// time to this moment — which is the common real case: the appointment
+// actually began late, so the countdown should begin from now.
+// ---------------------------------------------------------------------
+function adjustCurrentDuration(deltaMinutes) {
+  const currentAppt = getCurrentAppointment(getSortedAppointments());
+  if (!currentAppt) return;
+
+  const newDuration = Math.max(1, currentAppt.durationMinutes + deltaMinutes);
+  updateAppointment(currentAppt.id, { durationMinutes: newDuration });
+
+  // Re-arm the end alert so a newly-extended appointment can warn again.
+  clearAlertsForAppointment(currentAppt.id, ["end"]);
+
+  showToast(
+    deltaMinutes > 0 ? "Extended" : "Shortened",
+    `${currentAppt.patientName} — now ${newDuration} min`
+  );
+
+  renderOverview();
+  renderAppointmentsTable();
+}
+
+document.getElementById("timerPlus5Btn").addEventListener("click", () => adjustCurrentDuration(5));
+document.getElementById("timerMinus5Btn").addEventListener("click", () => adjustCurrentDuration(-5));
+
+document.getElementById("timerRestartBtn").addEventListener("click", () => {
+  const currentAppt = getCurrentAppointment(getSortedAppointments());
+  if (!currentAppt) return;
+
+  const now = new Date();
+  now.setSeconds(0, 0);
+  updateAppointment(currentAppt.id, { start: now.toISOString() });
+  clearAlertsForAppointment(currentAppt.id);
+
+  showToast("Timer restarted", `${currentAppt.patientName} — ${currentAppt.durationMinutes} min from now`);
   renderOverview();
   renderAppointmentsTable();
 });
@@ -1492,6 +1580,20 @@ function markAlertFired(key) {
 
 function hasAlertFired(key) {
   return !!getFiredAlerts()[key];
+}
+
+// Re-arm alerts for an appointment — used whenever its time or length
+// changes, so an edited or restarted appointment alerts properly again
+// instead of staying silent because it already fired earlier.
+function clearAlertsForAppointment(appointmentId, kinds) {
+  const kindList = kinds || ["soon", "start", "end"];
+  const fired = getFiredAlerts();
+  kindList.forEach((kind) => delete fired[`${appointmentId}:${kind}`]);
+  localStorage.setItem(FIRED_ALERTS_KEY, JSON.stringify(fired));
+}
+
+function clearAllAlertHistory() {
+  localStorage.removeItem(FIRED_ALERTS_KEY);
 }
 
 function checkAppointmentAlerts() {
