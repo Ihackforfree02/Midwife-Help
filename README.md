@@ -192,6 +192,39 @@ Settings → Profile now has "Additional emails" and "Phone numbers" as
 add/remove lists, separate from your one login email. Add as many as you
 like, remove any, and save.
 
+## Appointment alerts
+
+Every appointment fires up to three alerts automatically:
+
+- **2 minutes before it starts** — a heads-up to wrap up what you're doing.
+- **When it starts.**
+- **When its scheduled end passes** — the "you're now running over" alert.
+
+These appear as on-screen pop-ups in the corner. In **Settings →
+Appointment alerts** you can also enable **desktop notifications**, which
+show even when this tab isn't the one you're looking at. The browser asks
+permission once; if you block it, the on-screen pop-ups still work.
+
+Each alert fires at most once — which alerts have already gone off is
+remembered, so reloading the page doesn't replay old ones, and an
+appointment whose time passed hours ago won't suddenly alert on load.
+
+## Adding appointments quickly
+
+The add-appointment form is built to take a few seconds, not a minute:
+
+- **Start time and duration are pre-filled** — it suggests the next free
+  slot (right after your last appointment ends) and a 20-minute default.
+- **Quick-pick chips** for common durations (10/15/20/30/45/60 min) and
+  start times ("next free", "in 15 min", "in 30 min", "in 1 hour").
+- **Patient names autocomplete** from patients already on file, so booking
+  a follow-up doesn't mean retyping.
+- **Appointment types autocomplete** from common ones (routine antenatal,
+  first consultation, postnatal review, booking, home visit, phone).
+- **Enter saves** from any field, so it can be done without the mouse.
+- Booking someone who isn't on the patient list yet **adds them
+  automatically**, so the two lists don't drift apart.
+
 ## Moving data between devices (export / import)
 
 There's no backend, so nothing syncs by itself — but **Settings → Backup &
