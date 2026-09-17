@@ -732,7 +732,93 @@ function timeInputValue(isoString) {
   return d.toTimeString().slice(0, 5);
 }
 
+// Suggest the next sensible slot: right after the last appointment of
+// the day ends, or the next round 5 minutes if there aren't any yet.
+function suggestNextSlot() {
+  const appointments = getSortedAppointments();
+  if (appointments.length > 0) {
+    const last = appointments[appointments.length - 1];
+    const end = new Date(new Date(last.start).getTime() + last.durationMinutes * 60000);
+    if (end > new Date()) return end.toTimeString().slice(0, 5);
+  }
+  const d = new Date();
+  d.setMinutes(Math.ceil(d.getMinutes() / 5) * 5, 0, 0);
+  return d.toTimeString().slice(0, 5);
+}
+
+// Fill the patient-name dropdown from patients already on file, so
+// booking a follow-up doesn't mean retyping a name.
+function refreshPatientNameOptions() {
+  const datalist = document.getElementById("patientNameOptions");
+  datalist.innerHTML = "";
+  getPatients().forEach((p) => {
+    const option = document.createElement("option");
+    option.value = p.name;
+    datalist.appendChild(option);
+  });
+}
+
+// Quick-pick chips for start time and duration.
+function buildAppointmentChips() {
+  const durationWrap = document.getElementById("durationChips");
+  const durationInput = document.getElementById("apptDuration");
+  durationWrap.innerHTML = "";
+
+  [10, 15, 20, 30, 45, 60].forEach((mins) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "quick-chip";
+    chip.textContent = `${mins} min`;
+    chip.addEventListener("click", () => {
+      durationInput.value = mins;
+      syncDurationChips();
+    });
+    durationWrap.appendChild(chip);
+  });
+
+  durationInput.addEventListener("input", syncDurationChips);
+
+  const timeWrap = document.getElementById("startTimeChips");
+  const timeInput = document.getElementById("apptStartTime");
+  timeWrap.innerHTML = "";
+
+  const nextSlot = suggestNextSlot();
+  const chipDefs = [
+    { label: `Next free (${nextSlot})`, value: nextSlot },
+    { label: "In 15 min", offset: 15 },
+    { label: "In 30 min", offset: 30 },
+    { label: "In 1 hour", offset: 60 },
+  ];
+
+  chipDefs.forEach((def) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "quick-chip";
+    chip.textContent = def.label;
+    chip.addEventListener("click", () => {
+      if (def.value) {
+        timeInput.value = def.value;
+      } else {
+        const d = new Date(Date.now() + def.offset * 60000);
+        d.setSeconds(0, 0);
+        timeInput.value = d.toTimeString().slice(0, 5);
+      }
+    });
+    timeWrap.appendChild(chip);
+  });
+}
+
+function syncDurationChips() {
+  const value = document.getElementById("apptDuration").value;
+  document.querySelectorAll("#durationChips .quick-chip").forEach((chip) => {
+    chip.classList.toggle("active", chip.textContent === `${value} min`);
+  });
+}
+
 function openAppointmentForm(appointment) {
+  refreshPatientNameOptions();
+  buildAppointmentChips();
+
   if (appointment) {
     editingAppointmentId = appointment.id;
     apptFormTitle.textContent = "Edit appointment";
@@ -745,11 +831,15 @@ function openAppointmentForm(appointment) {
     apptFormTitle.textContent = "Add appointment";
     document.getElementById("apptPatientName").value = "";
     document.getElementById("apptType").value = "";
-    document.getElementById("apptStartTime").value = "";
+    // Pre-fill sensible defaults so adding a booking is two fields, not four.
+    document.getElementById("apptStartTime").value = suggestNextSlot();
     document.getElementById("apptDuration").value = 20;
   }
+
+  syncDurationChips();
   addAppointmentForm.style.display = "block";
   addAppointmentBtn.style.display = "none";
+  document.getElementById("apptPatientName").focus();
 }
 
 function closeAppointmentForm() {
@@ -761,7 +851,20 @@ function closeAppointmentForm() {
 addAppointmentBtn.addEventListener("click", () => openAppointmentForm(null));
 cancelAppointmentFormBtn.addEventListener("click", closeAppointmentForm);
 
-saveAppointmentBtn.addEventListener("click", () => {
+saveAppointmentBtn.addEventListener("click", saveAppointmentFromForm);
+
+// Enter anywhere in the form saves it, so adding a booking can be done
+// without reaching for the mouse.
+["apptPatientName", "apptType", "apptStartTime", "apptDuration"].forEach((id) => {
+  document.getElementById(id).addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveAppointmentFromForm();
+    }
+  });
+});
+
+function saveAppointmentFromForm() {
   const patientName = document.getElementById("apptPatientName").value.trim();
   const type = document.getElementById("apptType").value.trim();
   const startTime = document.getElementById("apptStartTime").value;
@@ -777,14 +880,26 @@ saveAppointmentBtn.addEventListener("click", () => {
 
   if (editingAppointmentId) {
     updateAppointment(editingAppointmentId, { patientName, type, start, durationMinutes });
+    showToast("Appointment updated", `${patientName} at ${formatClock(new Date(start))}`);
   } else {
     addAppointment({ patientName, type, start, durationMinutes });
+    showToast("Appointment added", `${patientName} at ${formatClock(new Date(start))}`);
+
+    // If this is someone not already on the patient list, add them, so
+    // the two lists don't drift apart.
+    const exists = getPatients().some(
+      (p) => p.name.toLowerCase() === patientName.toLowerCase()
+    );
+    if (!exists) {
+      addPatient({ name: patientName, note: "", dueDate: "", phone: "" });
+      renderPatients();
+    }
   }
 
   closeAppointmentForm();
   renderAppointmentsTable();
   renderOverview();
-});
+}
 
 function appointmentStatus(appointment, currentApptId) {
   if (appointment.done) return { text: "Done", cls: "badge-done" };
@@ -1291,3 +1406,130 @@ window.addEventListener("storage", (event) => {
   if (viewId === "view-settings") renderAccountSwitcher();
   if (viewId === "view-admin") renderAdminTable();
 });
+
+// =======================================================================
+// DESKTOP NOTIFICATIONS
+//
+// Browser notifications show even when this tab isn't focused, which is
+// the point — a midwife working in another window still gets told an
+// appointment is starting. Permission has to be asked for once, and the
+// browser only allows the request in response to a click, which is why
+// it's a button in Settings rather than something automatic on load.
+// =======================================================================
+function desktopNotificationsAvailable() {
+  return typeof Notification !== "undefined";
+}
+
+function updateDesktopNotifStatus() {
+  const statusEl = document.getElementById("desktopNotifStatus");
+  const btn = document.getElementById("enableDesktopNotifBtn");
+
+  if (!desktopNotificationsAvailable()) {
+    statusEl.textContent = "Not supported by this browser";
+    btn.style.display = "none";
+    return;
+  }
+
+  if (Notification.permission === "granted") {
+    statusEl.textContent = "Enabled";
+    btn.style.display = "none";
+  } else if (Notification.permission === "denied") {
+    statusEl.textContent = "Blocked — change this in your browser's site settings";
+    btn.style.display = "none";
+  } else {
+    statusEl.textContent = "Not enabled";
+    btn.style.display = "inline-flex";
+  }
+}
+
+document.getElementById("enableDesktopNotifBtn").addEventListener("click", () => {
+  if (!desktopNotificationsAvailable()) return;
+  Notification.requestPermission().then(() => {
+    updateDesktopNotifStatus();
+    if (Notification.permission === "granted") {
+      showToast("Desktop notifications on", "You'll be alerted even in other windows.");
+    }
+  });
+});
+
+updateDesktopNotifStatus();
+
+function notifyDesktop(title, body) {
+  if (!desktopNotificationsAvailable() || Notification.permission !== "granted") return;
+  try {
+    new Notification(title, { body, icon: "images/logo.svg" });
+  } catch (e) {
+    // Some browsers block constructing notifications in certain contexts;
+    // the on-screen toast still covers it, so fail quietly.
+  }
+}
+
+// =======================================================================
+// APPOINTMENT START / END ALERTS
+//
+// Checked every few seconds. Each appointment fires at most three
+// alerts: a 2-minute warning, one when it starts, and one when its
+// scheduled end passes. Which ones have already fired is remembered in
+// localStorage, so reloading the page doesn't replay old alerts.
+// =======================================================================
+const FIRED_ALERTS_KEY = "mc_fired_appointment_alerts";
+
+function getFiredAlerts() {
+  const raw = localStorage.getItem(FIRED_ALERTS_KEY);
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return {};
+  }
+}
+
+function markAlertFired(key) {
+  const fired = getFiredAlerts();
+  fired[key] = true;
+  localStorage.setItem(FIRED_ALERTS_KEY, JSON.stringify(fired));
+}
+
+function hasAlertFired(key) {
+  return !!getFiredAlerts()[key];
+}
+
+function checkAppointmentAlerts() {
+  const now = Date.now();
+
+  getAppointments().forEach((appt) => {
+    if (appt.done) return;
+
+    const start = new Date(appt.start).getTime();
+    const end = start + appt.durationMinutes * 60000;
+    const who = `${appt.type} — ${appt.patientName}`;
+
+    // Two-minute heads-up before it starts.
+    const warnKey = `${appt.id}:soon`;
+    if (!hasAlertFired(warnKey) && now >= start - 2 * 60000 && now < start) {
+      showToast("Starting in 2 minutes", who);
+      notifyDesktop("Starting in 2 minutes", who);
+      markAlertFired(warnKey);
+    }
+
+    // The moment it starts. The 60s window stops an alert firing for an
+    // appointment whose time passed long ago (e.g. after a reload).
+    const startKey = `${appt.id}:start`;
+    if (!hasAlertFired(startKey) && now >= start && now < start + 60000) {
+      showToast("Appointment starting now", who);
+      notifyDesktop("Appointment starting now", who);
+      markAlertFired(startKey);
+    }
+
+    // When the scheduled end passes.
+    const endKey = `${appt.id}:end`;
+    if (!hasAlertFired(endKey) && now >= end && now < end + 60000) {
+      showToast("Appointment time is up", who, "warn");
+      notifyDesktop("Appointment time is up", who);
+      markAlertFired(endKey);
+    }
+  });
+}
+
+checkAppointmentAlerts();
+setInterval(checkAppointmentAlerts, 5000);
