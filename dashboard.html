@@ -121,13 +121,23 @@
               <label for="editTimerDuration">Duration (minutes)</label>
               <input type="number" id="editTimerDuration" min="1" style="max-width:120px;">
             </div>
+            <div class="form-row">
+              <label for="editTimerStart">Start time</label>
+              <input type="time" id="editTimerStart" style="max-width:140px;">
+            </div>
             <button class="btn btn-primary" id="saveTimerEditBtn">Save</button>
             <button class="btn btn-ghost" id="cancelTimerEditBtn">Cancel</button>
           </div>
 
+          <div class="quick-chips" id="timerQuickControls" style="justify-content:center; margin-top:1rem;">
+            <button class="quick-chip" id="timerMinus5Btn">−5 min</button>
+            <button class="quick-chip" id="timerPlus5Btn">+5 min</button>
+            <button class="quick-chip" id="timerRestartBtn">Restart now</button>
+          </div>
+
           <div class="timer-controls">
             <button class="btn btn-primary" id="nextApptBtn">Mark done &amp; go to next</button>
-            <button class="btn btn-ghost" id="editTimerBtn">Edit timer</button>
+            <button class="btn btn-ghost" id="editTimerBtn">Edit</button>
           </div>
           <div class="connection-note">
             This is a live countdown based on the appointment's actual start time and duration — edit either from here or the Appointments page. Once an Arduino device is connected, it can drive this the same way, by updating the same appointment data.
@@ -190,6 +200,11 @@
         <div id="appointmentsEmpty" class="alert-meta" style="display:none; padding:0.8rem 0;">No appointments yet.</div>
         <div style="text-align:center; margin-top:1.2rem;">
           <button class="btn btn-primary" id="addAppointmentBtn">+ Add appointment</button>
+          <button class="btn btn-ghost" id="resetDayBtn">Reset day</button>
+          <button class="btn btn-ghost" id="clearAllAppointmentsBtn">Clear all</button>
+        </div>
+        <div class="connection-note">
+          <strong>Reset day</strong> marks every appointment as not done and re-arms their alerts, so you can run through the same schedule again — handy for testing or demoing. <strong>Clear all</strong> deletes them entirely.
         </div>
       </div>
     </section>
