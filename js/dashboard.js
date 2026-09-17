@@ -335,15 +335,14 @@ addPatientBtn.addEventListener("click", () => {
 cancelPatientBtn.addEventListener("click", () => {
   addPatientForm.style.display = "none";
   addPatientBtn.style.display = "inline-flex";
-  document.getElementById("newPatientName").value = "";
-  document.getElementById("newPatientNote").value = "";
-  document.getElementById("newPatientReminderDate").value = "";
-  document.getElementById("newPatientReminderNote").value = "";
+  clearPatientForm();
 });
 
 savePatientBtn.addEventListener("click", () => {
   const name = document.getElementById("newPatientName").value.trim();
   const note = document.getElementById("newPatientNote").value.trim();
+  const dueDate = document.getElementById("newPatientDueDate").value;
+  const phone = document.getElementById("newPatientPhone").value.trim();
   const reminderDate = document.getElementById("newPatientReminderDate").value;
   const reminderNote = document.getElementById("newPatientReminderNote").value.trim();
 
@@ -352,7 +351,7 @@ savePatientBtn.addEventListener("click", () => {
     return;
   }
 
-  addPatient({ name, note });
+  addPatient({ name, note, dueDate, phone });
 
   if (reminderDate || reminderNote) {
     addReminder({
@@ -363,16 +362,75 @@ savePatientBtn.addEventListener("click", () => {
     });
   }
 
-  document.getElementById("newPatientName").value = "";
-  document.getElementById("newPatientNote").value = "";
-  document.getElementById("newPatientReminderDate").value = "";
-  document.getElementById("newPatientReminderNote").value = "";
+  clearPatientForm();
   addPatientForm.style.display = "none";
   addPatientBtn.style.display = "inline-flex";
 
   renderPatients();
   renderReminders();
 });
+
+function clearPatientForm() {
+  ["newPatientName", "newPatientNote", "newPatientDueDate", "newPatientPhone",
+   "newPatientReminderDate", "newPatientReminderNote"].forEach((id) => {
+    document.getElementById(id).value = "";
+  });
+}
+
+// ---------------------------------------------------------------------
+// Patient notes panel.
+// ---------------------------------------------------------------------
+let activeNotesPatientId = null;
+
+function openPatientNotes(patient) {
+  activeNotesPatientId = patient.id;
+  document.getElementById("patientNotesTitle").textContent = `Notes — ${patient.name}`;
+  document.getElementById("patientNotesCard").style.display = "block";
+  renderPatientNotes();
+}
+
+document.getElementById("closePatientNotesBtn").addEventListener("click", () => {
+  activeNotesPatientId = null;
+  document.getElementById("patientNotesCard").style.display = "none";
+});
+
+document.getElementById("savePatientNoteBtn").addEventListener("click", () => {
+  const input = document.getElementById("newPatientNoteText");
+  const text = input.value.trim();
+  if (!text || !activeNotesPatientId) return;
+  addPatientNote(activeNotesPatientId, text);
+  input.value = "";
+  renderPatientNotes();
+});
+
+document.getElementById("newPatientNoteText").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("savePatientNoteBtn").click();
+});
+
+function renderPatientNotes() {
+  const list = document.getElementById("patientNotesList");
+  const patient = getPatients().find((p) => p.id === activeNotesPatientId);
+  if (!patient) return;
+
+  const notes = patient.notes || [];
+  if (notes.length === 0) {
+    list.innerHTML = '<p class="alert-meta">No notes yet.</p>';
+    return;
+  }
+
+  list.innerHTML = "";
+  notes.forEach((note) => {
+    const item = document.createElement("div");
+    item.className = "alert-item";
+    item.innerHTML = `
+      <div style="flex:1;">
+        <div>${escapeHtml(note.text)}</div>
+        <div class="alert-meta">${new Date(note.timestamp).toLocaleString()}</div>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
 
 function renderPatients() {
   const patients = getPatients();
@@ -393,17 +451,49 @@ function renderPatients() {
   patients.forEach((patient) => {
     const item = document.createElement("li");
     item.className = "schedule-item";
+
+    const gestation = gestationFromDueDate(patient.dueDate);
+    const detailBits = [];
+    if (patient.note) detailBits.push(escapeHtml(patient.note));
+    if (patient.phone) detailBits.push(escapeHtml(patient.phone));
+    if (gestation) {
+      const dueText = gestation.overdue
+        ? `${Math.abs(gestation.daysUntilDue)} days past due`
+        : `${gestation.daysUntilDue} days to go`;
+      detailBits.push(`<strong>${gestation.label} weeks</strong> · ${dueText}`);
+    }
+
     item.innerHTML = `
       <div class="schedule-info">
         <div class="schedule-name">${escapeHtml(patient.name)}</div>
-        ${patient.note ? `<div class="schedule-type">${escapeHtml(patient.note)}</div>` : ""}
+        ${detailBits.length ? `<div class="schedule-type">${detailBits.join(" · ")}</div>` : ""}
       </div>
     `;
+
+    if (gestation && gestation.overdue) {
+      const badge = document.createElement("span");
+      badge.className = "badge badge-current";
+      badge.textContent = "Overdue";
+      badge.style.marginRight = "0.5rem";
+      item.appendChild(badge);
+    }
+
+    const notesBtn = document.createElement("button");
+    notesBtn.className = "btn btn-ghost";
+    notesBtn.textContent = `Notes${patient.notes && patient.notes.length ? ` (${patient.notes.length})` : ""}`;
+    notesBtn.style.marginRight = "0.4rem";
+    notesBtn.addEventListener("click", () => openPatientNotes(patient));
+    item.appendChild(notesBtn);
+
     const deleteBtn = document.createElement("button");
     deleteBtn.className = "btn btn-ghost";
     deleteBtn.textContent = "Remove";
     deleteBtn.addEventListener("click", () => {
       deletePatient(patient.id);
+      if (activeNotesPatientId === patient.id) {
+        activeNotesPatientId = null;
+        document.getElementById("patientNotesCard").style.display = "none";
+      }
       renderPatients();
     });
     item.appendChild(deleteBtn);
@@ -804,18 +894,38 @@ function renderOverview() {
     scheduleEmpty.style.display = "block";
   } else {
     scheduleEmpty.style.display = "none";
+
+    // Work out the knock-on effect of running late: once we're past the
+    // current appointment's scheduled end, every later appointment gets
+    // pushed back by that much. This is the "what time will I actually
+    // get to them" number, which matters more than the booked time.
+    let delayMinutes = 0;
+    if (currentAppt) {
+      const currentEnd = new Date(currentAppt.start).getTime() + currentAppt.durationMinutes * 60000;
+      if (Date.now() > currentEnd) {
+        delayMinutes = Math.ceil((Date.now() - currentEnd) / 60000);
+      }
+    }
+
     appointments.forEach((appt) => {
       const status = appointmentStatus(appt, currentAppt ? currentAppt.id : null);
-      const badgeClass = status.cls === "badge-current" ? (status.text === "Overdue" ? "badge-current" : "badge-current") : status.cls;
       const li = document.createElement("li");
       li.className = "schedule-item";
+
+      const scheduled = new Date(appt.start);
+      const isLaterThanCurrent = currentAppt && new Date(appt.start) > new Date(currentAppt.start);
+      const showProjected = delayMinutes > 0 && isLaterThanCurrent && !appt.done;
+      const projected = new Date(scheduled.getTime() + delayMinutes * 60000);
+
       li.innerHTML = `
-        <div class="schedule-time">${formatClock(new Date(appt.start))}</div>
+        <div class="schedule-time">${formatClock(scheduled)}</div>
         <div class="schedule-info">
           <div class="schedule-name">${escapeHtml(appt.type)} — ${escapeHtml(appt.patientName)}</div>
-          <div class="schedule-type">${appt.durationMinutes} min</div>
+          <div class="schedule-type">
+            ${appt.durationMinutes} min${showProjected ? ` · <span style="color:var(--color-danger);">likely ${formatClock(projected)}</span>` : ""}
+          </div>
         </div>
-        <span class="badge ${badgeClass}">${status.text}</span>
+        <span class="badge ${status.cls}">${status.text}</span>
       `;
       scheduleList.appendChild(li);
     });
@@ -1098,3 +1208,86 @@ setInterval(() => {
   }
   lastChatCount = chatCount;
 }, 4000);
+
+// =======================================================================
+// EXPORT / IMPORT — the manual stand-in for real syncing.
+// =======================================================================
+document.getElementById("exportDataBtn").addEventListener("click", () => {
+  const data = exportAllData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `midwife-connect-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+  showToast("Exported", "Saved to your downloads.");
+});
+
+document.getElementById("importDataBtn").addEventListener("click", () => {
+  document.getElementById("importFileInput").click();
+});
+
+document.getElementById("importFileInput").addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const resultBox = document.getElementById("importResult");
+    try {
+      const data = JSON.parse(reader.result);
+      const result = importAllData(data);
+
+      resultBox.textContent = result.ok ? result.summary : result.reason;
+      resultBox.style.background = result.ok ? "var(--color-ok-bg)" : "var(--color-danger-bg)";
+      resultBox.style.color = result.ok ? "var(--color-primary-dark)" : "var(--color-danger)";
+      resultBox.classList.add("visible");
+
+      if (result.ok) {
+        renderAccountSwitcher();
+        renderPatients();
+        renderReminders();
+        renderAppointmentsTable();
+        renderOverview();
+        renderPatientMessages();
+        renderNotifications();
+      }
+    } catch (e) {
+      resultBox.textContent = "Couldn't read that file — make sure it's a Midwife Connect export.";
+      resultBox.style.background = "var(--color-danger-bg)";
+      resultBox.style.color = "var(--color-danger)";
+      resultBox.classList.add("visible");
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = "";
+});
+
+// =======================================================================
+// CROSS-TAB SYNC.
+//
+// The browser fires a "storage" event in OTHER tabs whenever this site's
+// localStorage changes. So if the same person has the dashboard open in
+// two tabs — or a patient sends a message from contact.html in another
+// tab — this picks it up and re-renders straight away, no refresh.
+// (Still same-browser only; it can't reach another device.)
+// =======================================================================
+window.addEventListener("storage", (event) => {
+  if (!event.key || !event.key.startsWith("mc_")) return;
+
+  renderNotifications();
+
+  const activeView = document.querySelector(".view.active");
+  const viewId = activeView ? activeView.id : "";
+
+  if (viewId === "view-overview") renderOverview();
+  if (viewId === "view-appointments") renderAppointmentsTable();
+  if (viewId === "view-patients") renderPatients();
+  if (viewId === "view-reminders") { renderReminders(); renderPatientMessages(); }
+  if (viewId === "view-chat") { renderChatContacts(); renderChatThread(); }
+  if (viewId === "view-settings") renderAccountSwitcher();
+  if (viewId === "view-admin") renderAdminTable();
+});
