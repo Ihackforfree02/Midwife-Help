@@ -292,7 +292,15 @@
         </div>
         <div class="form-row">
           <label for="newPatientNote">Note (optional)</label>
-          <input type="text" id="newPatientNote" placeholder="e.g. due date, ward">
+          <input type="text" id="newPatientNote" placeholder="e.g. ward, risk factors">
+        </div>
+        <div class="form-row">
+          <label for="newPatientDueDate">Estimated due date (optional)</label>
+          <input type="date" id="newPatientDueDate">
+        </div>
+        <div class="form-row">
+          <label for="newPatientPhone">Phone (optional)</label>
+          <input type="tel" id="newPatientPhone">
         </div>
         <div class="form-row">
           <label for="newPatientReminderDate">Set a reminder (optional)</label>
@@ -317,6 +325,17 @@
         <div style="text-align:center; margin-top:1.2rem;">
           <button class="btn btn-primary" id="addPatientBtn">Add a patient</button>
         </div>
+      </div>
+
+      <div class="card" style="margin-top:1.4rem; display:none;" id="patientNotesCard">
+        <h3 class="section-title" id="patientNotesTitle">Notes</h3>
+        <p class="section-sub">Quick handover notes — jot something down without leaving the page.</p>
+        <div style="display:flex; gap:0.6rem; margin-bottom:1rem;">
+          <input type="text" id="newPatientNoteText" placeholder="Add a note..." style="flex:1; padding:0.65em 0.85em; border:1px solid var(--color-border); border-radius:var(--radius-s);">
+          <button class="btn btn-primary" id="savePatientNoteBtn">Add</button>
+        </div>
+        <div id="patientNotesList"></div>
+        <button class="btn btn-ghost" id="closePatientNotesBtn" style="margin-top:0.8rem;">Close</button>
       </div>
     </section>
 
@@ -365,6 +384,21 @@
         </div>
 
         <button class="btn btn-primary" id="saveProfileBtn">Save changes</button>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.4rem;">
+        <h3 class="section-title">Backup &amp; transfer</h3>
+        <p class="section-sub">This site stores everything in this browser only, so data can't sync by itself. Export it to a file to back it up, or to move it onto another device or browser.</p>
+
+        <div id="importResult" class="login-error" style="background:var(--color-ok-bg); color:var(--color-primary-dark); margin-bottom:1rem;"></div>
+
+        <button class="btn btn-primary" id="exportDataBtn">Export all data</button>
+        <input type="file" id="importFileInput" accept="application/json" style="display:none;">
+        <button class="btn btn-ghost" id="importDataBtn">Import from file</button>
+
+        <div class="connection-note">
+          Importing <strong>merges</strong> — it adds anything new from the file without deleting what's already here, so two people can each export and import to combine their accounts, patients and messages.
+        </div>
       </div>
 
       <div class="card" style="margin-bottom: 1.4rem;">
