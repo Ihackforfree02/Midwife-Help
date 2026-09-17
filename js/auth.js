@@ -113,12 +113,78 @@ function savePatients(patients) {
   localStorage.setItem(PATIENTS_KEY, JSON.stringify(patients));
 }
 
-function addPatient({ name, note }) {
+function addPatient({ name, note, dueDate, phone }) {
   const patients = getPatients();
-  const patient = { id: Date.now().toString(), name, note: note || "" };
+  const patient = {
+    id: Date.now().toString(),
+    name,
+    note: note || "",
+    dueDate: dueDate || "", // estimated due date (EDD), YYYY-MM-DD
+    phone: phone || "",
+    notes: [], // running handover/visit notes
+  };
   patients.push(patient);
   savePatients(patients);
   return patient;
+}
+
+function updatePatient(id, updates) {
+  const patients = getPatients();
+  const patient = patients.find((p) => p.id === id);
+  if (!patient) return null;
+  Object.assign(patient, updates);
+  savePatients(patients);
+  return patient;
+}
+
+function addPatientNote(patientId, text) {
+  const patients = getPatients();
+  const patient = patients.find((p) => p.id === patientId);
+  if (!patient) return null;
+  if (!patient.notes) patient.notes = [];
+  patient.notes.unshift({
+    id: Date.now().toString(),
+    text,
+    timestamp: new Date().toISOString(),
+  });
+  savePatients(patients);
+  return patient;
+}
+
+// ---------------------------------------------------------------------
+// Gestational age from an estimated due date (EDD).
+//
+// Standard midwifery maths: a pregnancy is counted as 40 weeks from the
+// last menstrual period, so weeks gestation = 40 weeks minus however
+// long is left until the due date. Returned as "32+4" (weeks+days),
+// which is how it's normally written on a chart.
+// ---------------------------------------------------------------------
+function gestationFromDueDate(dueDate) {
+  if (!dueDate) return null;
+
+  const due = new Date(dueDate + "T00:00:00");
+  if (isNaN(due)) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const daysUntilDue = Math.round((due - today) / msPerDay);
+  const totalDays = 280 - daysUntilDue; // 280 days = 40 weeks
+
+  if (totalDays < 0) return { label: "Not yet dated", weeks: 0, days: 0, overdue: false };
+
+  const weeks = Math.floor(totalDays / 7);
+  const days = totalDays % 7;
+  const overdue = daysUntilDue < 0;
+
+  return {
+    label: `${weeks}+${days}`,
+    weeks,
+    days,
+    overdue,
+    daysUntilDue,
+  };
 }
 
 function deletePatient(id) {
@@ -326,6 +392,67 @@ function markConversationRead(myEmail, otherEmail) {
 function countUnreadChatMessages(myEmail) {
   const me = myEmail.trim().toLowerCase();
   return getChatMessages().filter((m) => m.to === me && !m.read).length;
+}
+
+// ---------------------------------------------------------------------
+// Export / import.
+//
+// This is the honest workaround for having no backend. Everything the
+// site knows lives in this browser's localStorage, so the only way to
+// move it to another device or browser is to hand it over as a file.
+// Export writes one .json file; import reads it back and MERGES it in,
+// so importing a colleague's export adds their accounts, patients and
+// messages to yours rather than wiping what you already had.
+// ---------------------------------------------------------------------
+const ALL_KEYS = [ACCOUNTS_KEY, MESSAGES_KEY, PATIENTS_KEY, REMINDERS_KEY, APPOINTMENTS_KEY, CHATS_KEY];
+
+function exportAllData() {
+  const data = { exportedAt: new Date().toISOString(), version: 1 };
+  ALL_KEYS.forEach((key) => {
+    const raw = localStorage.getItem(key);
+    data[key] = raw ? JSON.parse(raw) : [];
+  });
+  return data;
+}
+
+// Merge two lists of objects, keeping one copy per unique key.
+function mergeById(existing, incoming, keyName) {
+  const seen = new Map();
+  existing.forEach((item) => seen.set(item[keyName], item));
+  incoming.forEach((item) => {
+    if (!seen.has(item[keyName])) seen.set(item[keyName], item);
+  });
+  return Array.from(seen.values());
+}
+
+function importAllData(data) {
+  if (!data || typeof data !== "object") {
+    return { ok: false, reason: "That file doesn't look like a Midwife Connect export." };
+  }
+
+  const summary = [];
+
+  ALL_KEYS.forEach((key) => {
+    const incoming = Array.isArray(data[key]) ? data[key] : [];
+    if (incoming.length === 0) return;
+
+    const rawExisting = localStorage.getItem(key);
+    const existing = rawExisting ? JSON.parse(rawExisting) : [];
+
+    // Accounts are keyed by email; everything else has an id.
+    const keyName = key === ACCOUNTS_KEY ? "email" : "id";
+    const merged = mergeById(existing, incoming, keyName);
+
+    const added = merged.length - existing.length;
+    if (added > 0) summary.push(`${added} ${key.replace("mc_", "")}`);
+
+    localStorage.setItem(key, JSON.stringify(merged));
+  });
+
+  return {
+    ok: true,
+    summary: summary.length ? `Added ${summary.join(", ")}.` : "Nothing new to add — already up to date.",
+  };
 }
 
 function createAccount({ name, email, phone, password, isAdmin }) {
